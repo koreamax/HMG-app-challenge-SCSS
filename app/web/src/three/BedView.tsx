@@ -47,6 +47,11 @@ export default function BedView({
     return () => ro.disconnect()
   }, [size])
 
+  // 이름표 안의 운송장 번호 (KR-2611-6081 같은 것): 바뀌면 새 짐이 올라오는 모습을 다시 보인다
+  const loadId = name?.match(/\b[A-Z]{2}-\d{4}-\d{3,5}\b/)?.[0] ?? null
+  const loadIdRef = useRef(loadId)
+  loadIdRef.current = loadId
+
   useEffect(() => {
     if (!host.current || !tags.current) return
     try {
@@ -54,6 +59,7 @@ export default function BedView({
       const el = nameEl.current
       handle.current.setReserveTop(el ? el.offsetTop + el.offsetHeight : 0)
       handle.current.setView(viewRef.current)
+      handle.current.setLoadId(loadIdRef.current)
       handle.current.update(latest.current)
     } catch {
       setError('3D 화면을 그릴 수 없습니다')
@@ -67,6 +73,9 @@ export default function BedView({
   useEffect(() => {
     handle.current?.update(input)
   }, [input])
+  useEffect(() => {
+    handle.current?.setLoadId(loadId)
+  }, [loadId])
   useEffect(() => {
     handle.current?.setView(view)
   }, [view])

@@ -19,7 +19,10 @@
  *   꼬리표 = --surface-soft 어두운 알약 + 상태 점, 1.5px 상태 색 끌어 선 끝에 8px 점. 순서 배지 = --select 동그라미 + --ink 숫자.
  *   출발 때 자리 = 적재함 안쪽으로 자른 부드러운 반투명 면 (바닥 발자국 + 아래가 진하고 위로 사라지는 몸통, 모서리 선 없음).
  *   앞 = 바닥 위 납작한 V 둘 (--muted 50 %) + '앞' (--muted).
- *   '우와' 는 정차 화면만: 처음 480 ms 검정에서 밝아짐 · 쉼 흔들림 ±5° · 문제 벨트 숨쉬기. 주행 중 · 움직임 줄이기면 모두 멈춘다.
+ *   '우와' 는 정차 화면만: 처음 480 ms 검정에서 밝아짐 + 1.2 s 다가오기 · 빛 띠가 적재함을 쓸고 지나감 3 번 · 문제 벨트 숨쉬기 5 번.
+ *   모두 끝이 있고, 끝나면 그리기 고리도 멈춘다 (값이 바뀔 때만 다시 그린다). 주행 중 · 움직임 줄이기면 모두 멈춘다.
+ *   빛 (2026-11-14 b): 진짜 하늘 HDR(public/twin/env, 256 x 128 흐림)을 검은 스튜디오에 얹어 PMREM · 비등방 알루미늄 · 투명 막 가장자리 빛 ·
+ *   테이프 투명 막 · 공단 웨빙 sheen · PCSS 같은 그림자 · 반 해상도 GTAO · ACES + 옅은 S 곡선 + 비네트 (마지막 그림 한 장).
  *   꼬리표는 짐 윤곽(화면에 비친 짐 상자의 볼록 껍질) 밖, 기준점에서 가장 가까운 빈 쪽에 두고
  *   끌어 선은 짧게 (내비 80 px · 폰 48 px 까지), 짐 위를 가로지르지 않게 한다.
  *   더 걸 자리 = 불투명한 주황 띠 (반투명 유령 띠 아님. 정차 중 1.5 s 로 자체 빛만 숨쉰다. 꼬리표가 그 띠에 붙는다).
@@ -33,13 +36,17 @@
  * 짐 자세는 키트 값 그대로 (출발 때 자리에서 옮긴 x · z, 들림, 기울기). 적재함을 벗어나면 짐을 숨긴다.
  * 정차 중에만 그린다. 값이 바뀌거나 돌릴 때만 다시 그린다. 그림자 지도는 짐 · 벨트가 바뀔 때만 다시 계산한다.
  * 성능 (내비 헤드 유닛): 움직이지 않는 적재함 부품 · 벨트 부품은 재료마다 한 덩어리로 합쳐 그린다 (그리기 약 40 번).
- *   화면 배율 상한 내비 1.5 · 폰 2, 후처리 없음. 그림이 느리면(가운데 값 34 ms 넘게) 그림자 지도 1024.
+ *   화면 배율 상한 내비 1.5 · 폰 2. 후처리는 그릴 때만 (AO 반 해상도 + 마지막 그림 한 장). 그림이 느리면(가운데 값 34 ms 넘게)
+ *   그림자 지도 1024 + 이어 그리는 동안 AO 빼기 (멈추면 AO 와 함께 한 번 더).
  * 폰(작은 무대, data-size="sm")은 꼬리표 하나 + 화살만: 순서 배지는 화면의 순서 목록이 말한다.
  */
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js'
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js'
 import { BED } from '@/engine/constants'
 import { CARGO, type CargoKind } from '@/engine/cargo'
 import type { Tone } from '@/engine/limit'
@@ -95,6 +102,8 @@ export type BedHandle = {
   setView: (v: BedView) => void
   /** 위쪽에 비워 둘 높이 (px, 이름표) */
   setReserveTop: (px: number) => void
+  /** 운송장 번호 (바뀌면 새 짐이 올라오는 모습을 다시 보인다). 모르면 null */
+  setLoadId: (id: string | null) => void
   dispose: () => void
 }
 
@@ -168,6 +177,112 @@ const CORNER_R: Record<CargoKind, number> = { box: 0.008, appliance: 0.02, furni
 /** 출발 때 자리 (흐린 상자) 는 적재함 옆문 윗 덮개 높이까지만 (키 큰 짐도 공중에 높은 유리 상자가 서지 않게) */
 const GHOST_MAX_H = BED.sideH + 0.06
 
+/** 환경 빛 그림 (public/twin/env): kloofendal 하늘 HDR 을 256 x 128 로 줄이고 흐리게 한 것 (studio_sky_256.hdr, 100 KB) */
+const ENV_URL = (import.meta.env?.BASE_URL ?? '/') + 'twin/env/studio_sky_256.hdr'
+
+/**
+ * PCSS 같은 부드러운 그림자 (BasicShadowMap 의 getShadow 를 바꾼다: 깊이 그대로 읽는 그림자 지도).
+ *   가린 것 찾기 12 번 → 가린 것과 받는 면 사이 거리로 번짐 반지름을 정한다 (닿는 곳은 또렷, 멀수록 넓게) → 16 번 비교.
+ *   shadowRadius = 가장 넓은 번짐 (그림자 지도 칸). 주광 그림자 하나만 이것을 쓴다 (빛이 거의 바로 위라 깊이 1 = 13 m)
+ */
+let pcssReady: boolean | null = null
+function installPcss() {
+  if (pcssReady !== null) return pcssReady
+  const src = THREE.ShaderChunk.shadowmap_pars_fragment
+  // 이미 바꾼 조각 (개발 서버가 이 파일만 다시 읽을 때 three 는 그대로): 두 번 넣지 않는다
+  if (src.includes('pcssIgn(')) return (pcssReady = true)
+  // getShadow( sampler2D ...) 는 VSM · BASIC 둘: 마지막 것이 BASIC (빌드된 three 는 GLSL 주석이 없다)
+  const f = src.lastIndexOf('float getShadow( sampler2D shadowMap')
+  const a = src.indexOf('SHADOWMAP_TYPE_VSM')
+  if (a < 0 || f < a) return (pcssReady = false)
+  const endMark = 'return mix( 1.0, shadow, shadowIntensity );'
+  const e = f < 0 ? -1 : src.indexOf(endMark, f)
+  const close = e < 0 ? -1 : src.indexOf('}', e + endMark.length)
+  if (close < 0) return (pcssReady = false)
+  const pcss = /* glsl */ `
+		float pcssIgn( vec2 p ) { return fract( 52.9829189 * fract( dot( p, vec2( 0.06711056, 0.00583715 ) ) ) ); }
+		vec2 pcssVogel( int i, int n, float phi ) {
+			float r = sqrt( ( float( i ) + 0.5 ) / float( n ) );
+			float t = float( i ) * 2.399963229728653 + phi;
+			return vec2( cos( t ), sin( t ) ) * r;
+		}
+		float getShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowIntensity, float shadowBias, float shadowRadius, vec4 shadowCoord ) {
+			float shadow = 1.0;
+			shadowCoord.xyz /= shadowCoord.w;
+			shadowCoord.z += shadowBias;
+			bool inFrustum = shadowCoord.x >= 0.0 && shadowCoord.x <= 1.0 && shadowCoord.y >= 0.0 && shadowCoord.y <= 1.0;
+			if ( inFrustum && shadowCoord.z <= 1.0 ) {
+				vec2 texel = vec2( 1.0 ) / shadowMapSize;
+				float phi = pcssIgn( gl_FragCoord.xy ) * PI2;
+				float maxR = shadowRadius * texel.x;
+				float blk = 0.0;
+				float nb = 0.0;
+				for ( int i = 0; i < 12; i ++ ) {
+					float d = texture2D( shadowMap, shadowCoord.xy + pcssVogel( i, 12, phi ) * maxR ).r;
+					if ( d < shadowCoord.z ) { blk += d; nb += 1.0; }
+				}
+				if ( nb > 0.0 ) {
+					blk /= nb;
+					// 깊이 차 0.06 (≈ 80 cm) 에서 가장 넓게. 닿는 곳(차 0)은 1.2 칸
+					float pen = clamp( ( shadowCoord.z - blk ) / 0.06, 0.0, 1.0 );
+					float r = mix( 1.2 * texel.x, maxR, pen );
+					float s = 0.0;
+					for ( int i = 0; i < 16; i ++ ) s += step( shadowCoord.z, texture2D( shadowMap, shadowCoord.xy + pcssVogel( i, 16, phi + 1.7 ) * r ).r );
+					shadow = s / 16.0;
+				}
+			}
+			return mix( 1.0, shadow, shadowIntensity );
+		}
+`
+  THREE.ShaderChunk.shadowmap_pars_fragment = src.slice(0, f) + pcss + src.slice(close + 1)
+  return (pcssReady = true)
+}
+
+/**
+ * 마지막 그림 (화면): HDR 장면 x AO (반 해상도 GTAO, 이중 선형으로 키움) → ACES → sRGB → 옅은 S 곡선 (대비) → 옅은 비네트.
+ *   캔버스는 투명 (premultiplied): 반투명 가장자리는 색을 풀었다가 다시 곱한다. 비네트 = 검정 막을 가장자리에만 얹는다 (무대 바탕까지 같이)
+ */
+const GRADE_VS = /* glsl */ `
+varying vec2 vUv;
+void main() { vUv = uv; gl_Position = vec4( position.xy, 0.0, 1.0 ); }
+`
+const GRADE_FS = /* glsl */ `
+uniform sampler2D tScene;
+uniform sampler2D tAo;
+uniform float uAo;
+uniform float uExposure;
+uniform float uContrast;
+uniform float uVignette;
+uniform vec2 uAspect;
+varying vec2 vUv;
+vec3 rrtOdt( vec3 v ) {
+	vec3 a = v * ( v + 0.0245786 ) - 0.000090537;
+	vec3 b = v * ( 0.983729 * v + 0.4329510 ) + 0.238081;
+	return a / b;
+}
+vec3 aces( vec3 c ) {
+	const mat3 IN = mat3( vec3( 0.59719, 0.07600, 0.02840 ), vec3( 0.35458, 0.90834, 0.13383 ), vec3( 0.04823, 0.01566, 0.83777 ) );
+	const mat3 OUT = mat3( vec3( 1.60475, -0.10208, -0.00327 ), vec3( -0.53108, 1.10813, -0.07276 ), vec3( -0.07367, -0.00605, 1.07602 ) );
+	c *= uExposure / 0.6;
+	c = OUT * rrtOdt( IN * c );
+	return clamp( c, 0.0, 1.0 );
+}
+vec3 srgb( vec3 c ) { return mix( c * 12.92, 1.055 * pow( c, vec3( 1.0 / 2.4 ) ) - 0.055, step( 0.0031308, c ) ); }
+void main() {
+	vec4 s = texture2D( tScene, vUv );
+	float ao = mix( 1.0, texture2D( tAo, vUv ).r, uAo );
+	vec3 c = s.a > 0.0 ? s.rgb / s.a : vec3( 0.0 );
+	c = srgb( aces( c * ao ) );
+	// 옅은 S 곡선: 가운데 회색은 그대로, 어두운 쪽 · 밝은 쪽을 조금 더 벌린다
+	vec3 sc = c * c * ( 3.0 - 2.0 * c );
+	c = mix( c, sc, uContrast );
+	vec2 q = ( vUv - 0.5 ) * uAspect;
+	float v = uVignette * smoothstep( 0.24, 0.78, length( q ) );
+	// 비네트는 그린 것(적재함 · 그림자)에만: 무대 바탕(CSS)은 그대로 (무대 칸 가장자리에 네모 경계가 생기지 않게)
+	gl_FragColor = vec4( c * s.a * ( 1.0 - v ), s.a );
+}
+`
+
 /** 화면 배율 (시연 무대처럼 CSS 로 줄인 판이면 그만큼). 상한 = 내비 1.5 · 폰 2 (§10.6 성능) */
 function pixelRatio(host: HTMLElement, cap: number) {
   const r = host.getBoundingClientRect()
@@ -180,37 +295,42 @@ function pixelRatio(host: HTMLElement, cap: number) {
  *   + 위에 옅은 천장 판 하나. 옆문 판에는 띠가 넓은 밝은 줄로, 그 사이는 어두운 줄로 비친다 (RoomEnvironment 는 고르게 밝아 회색 칠처럼 보였다).
  *   둥근 윗 덮개는 천장 판을 가는 빛 줄 하나로 비춘다.
  */
-function studioEnvironment() {
+function studioEnvironment(hdr: THREE.Texture | null = null) {
   const s = new THREE.Scene()
-  const sky = new THREE.SphereGeometry(20, 32, 16)
+  const sky = new THREE.SphereGeometry(20, 64, 48)
   const pos = sky.getAttribute('position') as THREE.BufferAttribute
   const col = new Float32Array(pos.count * 3)
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i) / 20
-    // 바닥 쪽 0.02, 수평선 0.04, 천장 0.09 (선형 값): 띠 사이 판은 검정이 아니라 짙은 회색으로 비친다
-    const v = y < 0 ? 0.02 + 0.02 * (1 + y) : 0.04 + 0.05 * y
+    // (2026-11-15) 수평선 아래는 거의 검정 (검은 쇼룸 바닥): 세운 옆문 판은 수평선 아래 15 ~ 22° 를 비추므로 '어두운 거울'이 된다
+    //   (예전 0.012 ~ 0.06 + 키 큰 소프트박스 둘 = 판 전체가 고른 밝은 회색 칠처럼 읽혔다). 수평선 위는 옅은 하늘 (HDR 이 오면 그 결)
+    //   수평선 바로 아래 (0 ~ -30°)는 멀리 빛 웅덩이가 진 바닥처럼 옅게 밝다: 판 위쪽(얕게 비춘다)이 아래쪽보다 조금 밝다
+    //   (높이 -6 ~ -35° 는 거의 고르게: 내비 넓은 창 · 폰처럼 낮게 볼 때 (11 ~ 15°) 도 22° 와 같은 어두운 판)
+    const v = y < 0 ? 0.002 + 0.12 * THREE.MathUtils.smoothstep(y, -0.8, -0.1) + 0.2 * THREE.MathUtils.smoothstep(y, -0.1, 0) ** 2 : 0.035 + 0.06 * Math.sqrt(y)
     col[i * 3] = v
     col[i * 3 + 1] = v
     col[i * 3 + 2] = v * 1.06
   }
   sky.setAttribute('color', new THREE.BufferAttribute(col, 3))
-  s.add(new THREE.Mesh(sky, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })))
-  const box = (w: number, h: number, i: number, x: number, y: number, z: number, tint = 0xffffff) => {
+  s.add(new THREE.Mesh(sky, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, map: hdr })))
+  // 가로로 긴 소프트박스 하나 (수평선 바로 위를 한 바퀴 두르는 좁은 띠, 높이 약 0 ~ 6°): 둥근 윗 덮개 · 눌러 낸 골 · 강관은 휘어 있어
+  //   어느 쪽에서 보아도 이 띠를 또렷한 빛 줄 하나로 비춘다. 판판한 판은 띠 아래 검은 바닥을 비춘다 (Omniverse 사진의 옆문)
+  //   앞 오른쪽 · 뒤 왼쪽 (기본 시점에서 옆문 · 뒷문이 비추는 쪽)은 조금 더 밝게
+  const ring = (y0: number, y1: number, i: number, a0: number, a1: number, tint = 0xffffff) => {
+    const r = 18
+    const g = new THREE.CylinderGeometry(r, r, (y1 - y0) * r, 96, 1, true, a0, a1 - a0)
     const m = new THREE.MeshBasicMaterial({ color: tint, side: THREE.DoubleSide })
     m.color.multiplyScalar(i)
-    const o = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m)
-    o.position.set(x, y, z)
-    o.lookAt(0, y, 0)
+    const o = new THREE.Mesh(g, m)
+    o.position.y = ((y0 + y1) / 2) * r
     s.add(o)
-    return o
   }
-  // 소프트박스 A: 앞 오른쪽, 낮게까지 (방위 -Z 에서 +X 로 46 ~ 57°). 기본 시점에서 가까운 옆문의 뒤쪽 절반 · 왼쪽 옆문 안쪽 앞쪽 절반이
-  //   이것을 넓은 밝은 줄로 비추고, 나머지는 어두운 줄이 된다
-  box(1.15, 6.2, 1.7, 4.76, -1.2, -3.65, 0xfff6ea)
-  // 소프트박스 B: 뒤 왼쪽 (방위 +Z 에서 -X 로 약 60°): 뒷문에 세로로 긴 빛 줄
-  box(0.6, 6.2, 1.0, -5.2, -1.2, 3.0, 0xeef4ff)
+  ring(0.0, 0.1, 1.5, 0, Math.PI * 2, 0xfff8f0)
+  // three 의 원기둥 각 0 = +Z, 시계 반대 (+X 쪽). 옆문 반사 = 앞 오른쪽 (방위 +X · -Z 약 128°), 뒷문 반사 = 뒤 왼쪽 (약 -52°)
+  ring(0.015, 0.085, 3.4, THREE.MathUtils.degToRad(100), THREE.MathUtils.degToRad(160), 0xfff4e8)
+  ring(0.015, 0.085, 2.2, THREE.MathUtils.degToRad(280), THREE.MathUtils.degToRad(340), 0xeef4ff)
   // 천장 판 (옅게): 윗 덮개 · 바닥 판에 가는 빛 줄, 짐 윗면에 고른 빛
-  const top = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.4), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffffff).multiplyScalar(2.2), side: THREE.DoubleSide }))
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.4), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffffff).multiplyScalar(1.8), side: THREE.DoubleSide }))
   top.position.set(-0.6, 6, 0.4)
   top.rotation.x = Math.PI / 2
   s.add(top)
@@ -248,8 +368,9 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.0
   renderer.shadowMap.enabled = true
-  // PCF + radius 4 = 부드러운 그림자 (three r186 은 PCFSoftShadowMap 을 없애고 PCF 의 radius 로 무르게 한다)
-  renderer.shadowMap.type = THREE.PCFShadowMap
+  // PCSS 같은 그림자 (installPcss: 닿는 곳은 또렷, 멀수록 넓게 번진다). 바꿀 수 없으면 PCF + radius (고른 번짐)
+  const pcss = installPcss()
+  renderer.shadowMap.type = pcss ? THREE.BasicShadowMap : THREE.PCFShadowMap
   // 그림자 지도는 짐 · 벨트 · 앞 틀 그림자가 바뀔 때만 다시 계산한다 (shadowDirty)
   renderer.shadowMap.autoUpdate = false
   host.appendChild(renderer.domElement)
@@ -257,6 +378,16 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;opacity:0'
   let shown = false
   let shadowDirty = true
+  // 첫 그림 전 자리 그림 (포스터, public/twin/poster.jpg 흐린 적재함): 셰이더를 엮는 동안 (폰 SwiftShader 에서 수 초) 빈 무대가 아니게.
+  //   첫 그림이 나오면 그 위로 캔버스가 밝아진다 (bed.css .bv-poster)
+  const poster = document.createElement('div')
+  poster.className = 'bv-poster'
+  poster.style.backgroundImage = `url(${(import.meta.env?.BASE_URL ?? '/') + 'twin/poster.jpg'})`
+  host.insertBefore(poster, renderer.domElement)
+  // 꼬리표 층은 첫 그림 · 첫 자리 잡기 뒤에 보인다
+  tagLayer.style.visibility = 'hidden'
+  /** 셰이더를 미리 엮었는지 (compileAsync). 첫 그림은 이것을 1.5 s 까지 기다린다 (그리는 도중 멈춤 없이 한 번에) */
+  let compiled = false
 
   const scene = new THREE.Scene()
   // 길고 낮은 렌즈 (사진처럼 fov 27°: 원근이 덜 과장되어 장난감처럼 보이지 않는다)
@@ -271,21 +402,25 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   // 방 반사: RoomEnvironment 를 PMREM 으로 (반사에만 · scene.background 없음 = 무대 바탕은 CSS).
   //   흰 방이라 세기를 낮게 둔다 (ENV_I): 금속은 방의 밝은 창 · 천장 빛을 비친 곳만 밝고, 나머지는 어둡다.
   //   방을 돌려 밝은 창이 왼쪽 뒤 위에 오게 한다 (옆문 · 윗 덮개에 길게 빛 줄이 선다)
-  const pmrem = new THREE.PMREMGenerator(renderer)
-  const room = studioEnvironment()
-  const env = pmrem.fromScene(room, 0.02)
-  room.traverse((o) => {
-    const m = o as THREE.Mesh
-    m.geometry?.dispose?.()
-    const mm = m.material as THREE.Material | undefined
-    mm?.dispose?.()
-  })
+  //   진짜 하늘 HDR (public/twin/env, 256 x 128 흐린 그림)이 오면 같은 스튜디오에 그 결을 얹어 PMREM 을 한 번 더 만든다 (applyHdrEnv)
+  const bakeEnv = (hdr: THREE.Texture | null) => {
+    const pm = new THREE.PMREMGenerator(renderer)
+    const room = studioEnvironment(hdr)
+    const rt = pm.fromScene(room, 0.02)
+    room.traverse((o) => {
+      const m = o as THREE.Mesh
+      m.geometry?.dispose?.()
+      const mm = m.material as THREE.Material | undefined
+      mm?.dispose?.()
+    })
+    pm.dispose()
+    return rt
+  }
+  let env = bakeEnv(null)
   const ENV_I = 1.0
   scene.environment = env.texture
   scene.environmentIntensity = ENV_I
   scene.environmentRotation.set(0, 0, 0)
-  pmrem.dispose()
-  track(env.texture)
 
   // 빛 (사진의 스튜디오): 위에서 내리는 부드러운 주광(그림자) + 아주 옅은 반구광 + 뒤(앞 왼쪽)에서 오는 찬 테두리 빛
   //   + 옆(왼쪽, 낮게)에서 오는 따뜻한 테두리 빛. 테두리 빛이 윗 덮개 · 짐 모서리 윤곽을 검은 바탕에서 띄운다
@@ -299,7 +434,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   Object.assign(key.shadow.camera, { left: -2.7, right: 2.7, top: 2.7, bottom: -2.7, near: 3, far: 16 })
   key.shadow.bias = -0.00025
   key.shadow.normalBias = 0.012
-  key.shadow.radius = 6
+  // PCSS: 가장 넓은 번짐 22 칸 (≈ 6 cm, 앞 보호 틀 관처럼 높은 것의 그림자). 닿는 곳은 1.2 칸
+  key.shadow.radius = pcss ? 22 : 6
   scene.add(key)
   // 찬 테두리 빛: 카메라(뒤 오른쪽) 반대편 = 앞 왼쪽 위에서
   const rim = new THREE.DirectionalLight(0xc6d8ff, 1.5)
@@ -567,19 +703,39 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       f(r.w, r.h)
       c.restore()
     }
-    const g = (v: number) => {
+    // 거칠기 지도 = G 채널 (roughnessMap), 투명 막 = R 채널 (clearcoatMap): 테이프만 반짝이는 막 (R 1), 골판지 · 송장은 막 없음
+    const g = (v: number, coat = 0) => {
       const k = Math.round(v * 255)
-      return `rgb(${k},${k},${k})`
+      return `rgb(${Math.round(coat * 255)},${k},0)`
     }
     const tapeTab = (w: number, h: number) => {
       if (rough) {
-        c.fillStyle = g(0.36)
+        c.fillStyle = g(0.3, 1)
         c.fillRect(w * (0.5 - TAPE_W / 2), 0, w * TAPE_W, h * 0.24)
       } else tape(c, w * (0.5 - TAPE_W / 2), 0, w * TAPE_W, h * 0.24, 'y')
     }
     if (rough) {
       c.fillStyle = g(0.86)
       c.fillRect(0, 0, AT, AT)
+      // 골판지 거칠기 얼룩 (0.74 ~ 0.96): 손 닿은 자리 · 눌린 자리는 조금 매끈해 주광을 고르지 않게 받는다
+      for (let i = 0; i < 140; i++) {
+        const x = rnd() * AT
+        const y = rnd() * AT
+        const r = 14 + rnd() * 70
+        const v = 0.74 + rnd() * 0.22
+        const gr = c.createRadialGradient(x, y, 0, x, y, r)
+        const k = Math.round(v * 255)
+        gr.addColorStop(0, `rgba(0,${k},0,0.55)`)
+        gr.addColorStop(1, `rgba(0,${k},0,0)`)
+        c.fillStyle = gr
+        c.fillRect(x - r, y - r, r * 2, r * 2)
+      }
+      // 결 (가는 가로 줄)
+      for (let i = 0; i < 2600; i++) {
+        const k = Math.round((0.8 + rnd() * 0.16) * 255)
+        c.fillStyle = `rgba(0,${k},0,0.35)`
+        c.fillRect(rnd() * AT, rnd() * AT, 4 + rnd() * 18, 1)
+      }
     }
     // 옆면 (±X)
     at(RG[0], (w, h) => {
@@ -618,7 +774,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     // 윗면: 날개 이음 + 테이프 띠
     at(RG[2], (w, h) => {
       if (rough) {
-        c.fillStyle = g(0.36)
+        c.fillStyle = g(0.3, 1)
         c.fillRect(w * (0.5 - TAPE_W / 2), 0, w * TAPE_W, h)
         return
       }
@@ -867,39 +1023,29 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     },
     1.6,
   )
-  // 적재함 바닥: 어두운 강판 + 줄무늬 체크판 (마름모 돌기가 엇갈린다) = 법선 지도
-  const deckNormal = normalFrom(
-    128,
-    128,
-    (c, w) => {
-      c.fillStyle = '#000'
-      c.fillRect(0, 0, w, w)
-      const n = 4
-      const s = w / n
-      c.filter = 'blur(1.2px)'
-      for (let iy = 0; iy < n; iy++)
-        for (let ix = 0; ix < n; ix++) {
-          const ang = (ix + iy) % 2 ? Math.PI / 4 : -Math.PI / 4
-          c.save()
-          c.translate((ix + 0.5) * s, (iy + 0.5) * s)
-          c.rotate(ang)
-          c.fillStyle = '#fff'
-          c.beginPath()
-          c.ellipse(0, 0, s * 0.33, s * 0.065, 0, 0, Math.PI * 2)
-          c.fill()
-          c.restore()
-        }
-    },
-    2.2,
-  )
-  deckNormal.repeat.set(11, 15)
-  // 바닥 닳은 자국 (투명 바탕 위 옅은 긁힘 · 짐을 끈 자국)
-  const deckWear = canvasTex(256, 512, (c, w, h) => {
-    for (let i = 0; i < 260; i++) {
-      c.fillStyle = `rgba(${rnd() > 0.45 ? '210,214,220' : '10,12,14'},${(rnd() * 0.07).toFixed(3)})`
-      c.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 6 + rnd() * 60)
+  // 적재함 바닥 (2026-11-15): 매끈한 어두운 도장 강판 + 옅은 얼룩 (Omniverse 바닥). 예전 체크판 법선 · 긁힌 자국 줄은
+  //   내비 크기에서 빗줄기 · 잡음처럼 읽혀 뺐다. 한 장(512 px, 선형 값)을 색 지도와 거칠기 지도에 같이 쓴다:
+  //   밝은 얼룩 = 먼지 (조금 밝고 거칠다), 어두운 얼룩 = 닦인 곳 (조금 어둡고 매끈하다). 대비는 ±10 % 안
+  const deckGrunge = canvasTex(512, 512, (c, w, h) => {
+    c.fillStyle = 'rgb(128,128,128)'
+    c.fillRect(0, 0, w, h)
+    const blob = (x: number, y: number, r: number, v: number, a: number, sy = 1) => {
+      c.save()
+      c.translate(x, y)
+      c.scale(1, sy)
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, r)
+      g.addColorStop(0, `rgba(${v},${v},${v},${a})`)
+      g.addColorStop(1, `rgba(${v},${v},${v},0)`)
+      c.fillStyle = g
+      c.fillRect(-r, -r, 2 * r, 2 * r)
+      c.restore()
     }
-  })
+    for (let i = 0; i < 46; i++) blob(rnd() * w, rnd() * h, 30 + rnd() * 130, rnd() > 0.5 ? 168 : 92, 0.12 + rnd() * 0.12)
+    // 짐을 끈 넓고 흐린 자국 (앞뒤 = 그림 세로 방향, 폭 넓게 · 아주 옅게: 줄로 읽히지 않는다)
+    for (let i = 0; i < 10; i++) blob(w * (0.25 + rnd() * 0.5), rnd() * h, 26 + rnd() * 30, 150, 0.08, 4 + rnd() * 3)
+    // 잔 얼룩 (작은 점 여럿, 아주 옅게)
+    for (let i = 0; i < 260; i++) blob(rnd() * w, rnd() * h, 2 + rnd() * 6, rnd() > 0.5 ? 175 : 80, 0.18)
+  }, false, false)
   // 옆문 솔질 알루미늄: 판 길이를 따라 (u = 판 길이 · v = 높이) 가는 가로 결.
   //   색 지도 = 결마다 밝기가 조금씩 다른 가는 줄 (어두운 중간 회색 판에 길게 끊기는 결), 거칠기 지도 = 결마다 ±8 %,
   //   법선 = 줄마다 높이가 조금씩 달라 빛 줄이 결을 따라 길게 끊겼다 이어진다. 비등방 반사(결 방향으로 늘어난 빛)와 함께
@@ -924,19 +1070,22 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   )
   const gateStreak = canvasTex(1024, 256, (c, w, h) => {
     // 결은 아주 옅게 (가는 줄무늬가 칠한 판처럼 읽히지 않게: 판의 밝고 어두운 줄은 반사가 만든다)
-    c.fillStyle = 'rgb(236,236,236)'
+    //   (2026-11-15) 가운데 밝기를 낮췄다 (236 → 206): 거울 같은 판이 흰 칠이 아니라 어두운 금속으로 읽히게
+    c.fillStyle = 'rgb(206,206,206)'
     c.fillRect(0, 0, w, h)
     for (let i = 0; i < 1800; i++) {
-      const v = Math.round(214 + rnd() * 41)
+      const v = Math.round(184 + rnd() * 41)
       c.fillStyle = `rgba(${v},${v},${v},${(0.12 + rnd() * 0.25).toFixed(3)})`
       c.fillRect(rnd() * w, Math.floor(rnd() * h), 120 + rnd() * 600, 1)
     }
-    // 판 위아래 끝은 조금 어둡게 (접은 끝 · 먼지)
+    // 판 위쪽은 밝고 아래 절반은 어둡게: 판 아래쪽이 비추는 곳은 적재함 밑 그늘진 바닥이다
+    //   (환경 빛은 무한히 멀어 판 높이마다 같은 것을 비추므로, 가까운 바닥의 시차를 색 지도로 대신한다). 위아래 끝은 접은 끝 · 먼지
     const g = c.createLinearGradient(0, 0, 0, h)
-    g.addColorStop(0, 'rgba(0,0,0,0.12)')
-    g.addColorStop(0.06, 'rgba(0,0,0,0)')
-    g.addColorStop(0.94, 'rgba(0,0,0,0)')
-    g.addColorStop(1, 'rgba(0,0,0,0.16)')
+    g.addColorStop(0, 'rgba(0,0,0,0.1)')
+    g.addColorStop(0.05, 'rgba(0,0,0,0)')
+    g.addColorStop(0.4, 'rgba(0,0,0,0.05)')
+    g.addColorStop(0.7, 'rgba(0,0,0,0.32)')
+    g.addColorStop(1, 'rgba(0,0,0,0.45)')
     c.fillStyle = g
     c.fillRect(0, 0, w, h)
   }, true)
@@ -1002,9 +1151,10 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
    * 구운 닿는 그림자 (적재함 밑, 판 = 적재함 바닥 1.2 배): 안쪽 1/1.2 (= 적재함 밑)은 진하고, 둘레 10 % 띠에서 사라진다.
    *   둥근 네모 거리 x 방사형 (가운데가 조금 더 진하다) 이라 모서리에서도 고르게 번진다
    */
+  const BED_CONTACT_K = 1.4
   const bedContactTex = canvasTex(256, 256, (c, w, h) => {
     const img = c.createImageData(w, h)
-    const inner = 1 / 1.2
+    const inner = 1 / BED_CONTACT_K
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const u = Math.abs((x + 0.5) / w - 0.5) * 2
@@ -1013,8 +1163,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         const dx = Math.max(0, u - inner + 0.06)
         const dy = Math.max(0, v - inner + 0.06)
         const d = Math.min(1, Math.hypot(dx, dy) / (1 - inner + 0.06))
-        const fall = Math.pow(1 - d, 2.2)
-        const radial = 1 - 0.25 * Math.min(1, Math.hypot(u, v) / 1.414)
+        const fall = Math.pow(1 - d, 1.8)
+        const radial = 1 - 0.12 * Math.min(1, Math.hypot(u, v) / 1.414)
         const i = (y * w + x) * 4
         img.data[i] = img.data[i + 1] = img.data[i + 2] = 0
         img.data[i + 3] = Math.round(255 * fall * radial)
@@ -1023,26 +1173,69 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   }, false, true)
   /** 짐 하나하나 밑 좁은 AO (짐 바닥 1.15 배 판, 가장자리 7 % 에서 사라진다) */
   const itemAoTex = softRect(0.07, 3, 1)
+  /**
+   * 쇼룸 바닥 (2026-11-15): 반짝이는 검은 원판 (지름 FLOOR_D) — 가운데는 진하고 가장자리로 갈수록 투명해져 무대 바탕에 녹는다.
+   *   1 m 격자 (옅은 회색 가는 선)는 적재함 가장자리에서 1.5 m 안에서 사라진다. 바닥 반사는 거울 모양이 아니라
+   *   환경 빛(PMREM)을 거칠기 0.3 으로 흐리게 비춘 것뿐 (그림 한 장 값). 색 · 알파 한 장 (1024 px)
+   */
+  const FLOOR_D = 7
+  const floorTex = canvasTex(1024, 1024, (c, w, h) => {
+    const img = c.createImageData(w, h)
+    const px = FLOOR_D / w
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        // 세계 좌표 (m): 그림 가운데 = 적재함 가운데. 그림 위 = -Z (앞)
+        const wx = (x + 0.5) * px - FLOOR_D / 2
+        const wz = (y + 0.5) * px - FLOOR_D / 2
+        const r = Math.hypot(wx * 0.92, wz * 0.78)
+        // 알파: 반지름 1.5 m 까지 진하고 3.3 m 에서 0 (부드러운 곡선)
+        const a = 1 - THREE.MathUtils.smoothstep(r, 1.3, 2.9)
+        // 격자 1 m: 선까지 거리 (m) → 폭 1.6 cm 선, 가장자리 부드럽게. 적재함에서 멀어지며 사라진다
+        const gx = Math.abs(wx - Math.round(wx))
+        const gz = Math.abs(wz - Math.round(wz))
+        const line = Math.max(1 - THREE.MathUtils.smoothstep(gx, 0.004, 0.011), 1 - THREE.MathUtils.smoothstep(gz, 0.004, 0.011))
+        const gridFade = 1 - THREE.MathUtils.smoothstep(Math.hypot(Math.max(0, Math.abs(wx) - W / 2), Math.max(0, Math.abs(wz) - L / 2)), 0.25, 1.5)
+        // 빛 웅덩이 (흐린 반사를 미리 구운 것): 적재함 오른쪽 뒤 (기본 시점의 앞쪽 바닥) 에 옅고 따뜻한 회색, 둘레로 사라진다
+        const pool = Math.exp(-(((wx - 1.25) / 1.2) ** 2 + ((wz - 0.7) / 1.5) ** 2)) * 0.8 + Math.exp(-((wx / 1.6) ** 2 + (wz / 2.0) ** 2)) * 0.35
+        const v = 9 + 26 * pool + 40 * line * gridFade
+        const i = (y * w + x) * 4
+        img.data[i] = v + 3 * pool
+        img.data[i + 1] = v + 1 * pool
+        img.data[i + 2] = v
+        img.data[i + 3] = Math.round(255 * a)
+      }
+    c.putImageData(img, 0, 0)
+  })
 
   const M = {
     // 바닥: 어두운 강판 #16181B · 거칠기 0.5 · 아주 옅은 줄무늬 체크판 법선 (사진의 매끈하고 어두운 바닥). 금속 몫은 반쯤
-    deckTop: std(0x16181b, 0.55, 0.5, { normalMap: deckNormal, normalScale: new THREE.Vector2(0.35, 0.35) }),
-    deckWear: track(new THREE.MeshBasicMaterial({ map: deckWear, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })),
+    //   (2026-11-14 b: 사진처럼 더 검고 매끈하게 #0F1113 · 거칠기 0.42 · 체크판 법선 0.16 = 가까이서만 보이는 결)
+    //   (2026-11-15: 체크판 법선 · 긁힌 자국 빼고 얼룩 지도 하나 = 색 x 거칠기 (0.5 x 2 x 얼룩 ≈ 0.42 ~ 0.58). 색은 지도 가운데 값 0.5 를 되돌려 곱한 값)
+    deckTop: std(0x30343a, 0.55, 0.9, { map: deckGrunge, roughnessMap: deckGrunge }),
     deckSide: std(0x1e2125, 0.7, 0.5),
     // 밑 틀: 흑연 강판 (그림자 속에 묻힌다)
     frame: std(0x1e2125, 0.6, 0.55),
     // 알루미늄 옆판: 어두운 솔질 알루미늄 (색 #A3AAB2 x 결 지도 = 화면에서 중간 회색, 흰 판 금지) · 금속 1 · 거칠기 0.36 (결마다 ±8 %) · 결 색 지도 ·
     //   가로 헤어라인 법선 (옅게) · 비등방 0.6 (결 = 판 길이 방향): 빛 줄이 결을 따라 길게 늘어난다 (사진의 옆문)
     //   (2026-11-14: 연마 알루미늄. 금속 1 · 거칠기 0.22 · 헤어라인 법선 0.15 · 스튜디오 소프트박스가 넓은 밝은 줄 · 어두운 줄로 비친다)
-    gate: track(new THREE.MeshPhysicalMaterial({ color: 0xc6ccd2, map: gateStreak, metalness: 1, roughness: 0.22, roughnessMap: gateRough, normalMap: gateNormal, normalScale: new THREE.Vector2(0.15, 0.15) })),
-    // 눌러 낸 가로 골 (옆판과 같은 알루미늄, 조금 더 매끈: 골을 따라 빛 줄이 선다)
-    swage: std(0xb4bac1, 1, 0.18),
+    //   (2026-11-14 b: 진짜 하늘 HDR 반사 + 비등방 0.55 (빛 줄이 결 = 판 길이 방향으로 길게) + 얇은 투명 막 0.35 (거칠기 0.06):
+    //   비스듬히 보이는 판 끝 · 윗 모서리에 또렷한 빛 줄 (사진의 옆문 윗 끝 반짝임))
+    //   비등방 회전 90° (three 는 회전 0 이면 세운 판의 반사를 수평선 아래 검은 땅 쪽으로 굽혀 판이 검게 묻혔다)
+    //   (2026-11-15: 연마 거울판. 거칠기 0.3 → 0.13 · 비등방 0.15 · 투명 막 0.6: 검은 스튜디오 바닥을 비춘 어두운 거울 + 가로 소프트박스 빛 줄 하나
+    //   (Omniverse 사진과 나란히 놓으면 예전 판은 고른 밝은 회색 칠로 보였다))
+    gate: track(new THREE.MeshPhysicalMaterial({ color: 0xc8ced4, map: gateStreak, metalness: 1, roughness: 0.13, roughnessMap: gateRough, normalMap: gateNormal, normalScale: new THREE.Vector2(0.1, 0.1), anisotropy: 0.15, anisotropyRotation: Math.PI / 2, clearcoat: 0.6, clearcoatRoughness: 0.05 })),
+    // 눌러 낸 가로 골 (옆판과 같은 알루미늄, 조금 더 매끈: 골을 따라 빛 줄이 선다). 끝(모서리 기둥 옆)이 흰 줄로 타지 않게 중간 회색
+    swage: std(0x8a9096, 1, 0.16),
     // 윗 덮개: 둥근 관 (반지름 25 mm) · 거칠기 0.12 → 길이를 따라 또렷한 빛 줄 하나 (사진의 말린 윗 테두리)
-    gateCap: std(0xc4cad0, 1, 0.12),
+    //   관은 솔질 결이 길이 방향 (원기둥 UV 의 v) → 비등방 회전 90°: 빛 줄이 관을 따라 길게 늘어난다. 얇은 투명 막으로 가장자리 반짝임
+    gateCap: track(new THREE.MeshPhysicalMaterial({ color: 0xc4cad0, metalness: 1, roughness: 0.16, anisotropy: 0.5, anisotropyRotation: Math.PI / 2, clearcoat: 0.5, clearcoatRoughness: 0.05 })),
     // 앞 보호 틀: 흑연 분체 도장 #1B1D20 · 거칠기 0.6
     graphite: std(0x1b1d20, 0.35, 0.6),
     // 앞 보호 틀 강관: 솔질 강철 (사진의 관 틀. 흰 선이 되지 않게 중간 회색)
-    rail: std(0x8a9199, 1, 0.3),
+    //   (가는 관(반지름 21 mm, 14 각)은 비등방을 쓰면 빛 줄이 점선처럼 끊겨 보여 뺐다: 연마 강관 + 얇은 투명 막)
+    //   (2026-11-15: 관을 1.6 배 (지름 약 68 mm → 사진의 관 틀 굵기) · 28 각으로 굵게 하고 윗 덮개와 같은 재료 (거칠기 0.12 · 관을 따라 비등방):
+    //   관마다 또렷한 빛 줄 하나)
+    rail: track(new THREE.MeshPhysicalMaterial({ color: 0x969ca2, metalness: 1, roughness: 0.12, anisotropy: 0.15, anisotropyRotation: Math.PI / 2, clearcoat: 0.3, clearcoatRoughness: 0.05 })),
     // 모서리 기둥: 어두운 양극 산화 알루미늄 (흰 기둥이 테두리처럼 읽히지 않게)
     post: std(0x50565d, 1, 0.42),
     // 라쳇 버클 · 갈고리 · 고리: 아연 도금 강철 (사진의 버클처럼 밝게 비치는 금속, 거칠기 0.22)
@@ -1067,7 +1260,10 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     contact: track(new THREE.MeshBasicMaterial({ map: contactTex, transparent: true, depthWrite: false, opacity: 0.85, toneMapped: false })),
     bedSoft: track(new THREE.MeshBasicMaterial({ map: bedSoftTex, transparent: true, depthWrite: false, opacity: 0.6, toneMapped: false })),
     bedTight: track(new THREE.MeshBasicMaterial({ map: bedTightTex, transparent: true, depthWrite: false, opacity: 0.75, toneMapped: false })),
-    bedContact: track(new THREE.MeshBasicMaterial({ map: bedContactTex, transparent: true, depthWrite: false, opacity: 0.95, toneMapped: false })),
+    bedContact: track(new THREE.MeshBasicMaterial({ map: bedContactTex, transparent: true, depthWrite: false, opacity: 1, toneMapped: false })),
+    // 쇼룸 바닥 원판: 거의 검은 반짝이는 바닥 (거칠기 0.3, 환경 빛을 흐리게 비춘다) + 1 m 격자. 가장자리는 알파로 녹는다
+    //   (빛을 받지 않는 재료: 주광 · 테두리 빛이 반짝이는 바닥에 크고 흰 반점을 만들어 무대 끝에서 잘렸다. 반사는 그림에 구운 웅덩이로)
+    floor: track(new THREE.MeshBasicMaterial({ color: 0xffffff, map: floorTex, transparent: true, depthWrite: false })),
     // 짐 하나하나 밑 AO (상자 · 포대 · 받침이 바닥에 앉아 보이게)
     itemAo: track(new THREE.MeshBasicMaterial({ map: itemAoTex, color: 0x000000, transparent: true, depthWrite: false, opacity: 0.8, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })),
     // 짐 바로 밑 좁은 닿는 그림자 (짐 바닥 1.05 배): 진한 바닥 위에서도 짐이 바닥에 앉아 보이게
@@ -1086,7 +1282,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   ]
   const cartonN = new THREE.Vector2(0.35, 0.35)
   // 상자 재료 하나 (아틀라스 x 상자 색 = 꼭짓점 색). 테이프 · 송장은 거칠기 지도로 조금 더 반짝인다
-  const cartonMat = std(0xe6d2bc, 0, 1, { map: cartonAtlas, roughnessMap: cartonAtlasRough, normalMap: cartonNormal, normalScale: cartonN, vertexColors: true })
+  //   거칠기 지도의 R 채널 = 투명 막 (테이프만): 테이프가 크라프트 위에서 반짝이는 얇은 비닐로 읽힌다
+  const cartonMat = track(new THREE.MeshPhysicalMaterial({ color: 0xe6d2bc, metalness: 0, roughness: 1, map: cartonAtlas, roughnessMap: cartonAtlasRough, normalMap: cartonNormal, normalScale: cartonN, vertexColors: true, clearcoat: 0.9, clearcoatRoughness: 0.12, clearcoatMap: cartonAtlasRough }))
   M.appliance.roughness = 1
   M.appliance.roughnessMap = applianceRough
   M.appliance.normalMap = cartonNormal
@@ -1131,16 +1328,89 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   })
   const applianceMats = [M.appliance, M.appliance, applianceTop, M.appliance, M.appliance, M.appliance]
   // 위에서 보기에서 반사를 따로 낮출 재료: 방 반사를 직접 달아 envMapIntensity 가 듣게 한다
+  // 모서리 기둥 · 골 끝은 반사를 낮춘다 (뒤 모서리가 흰 세로 띠로 타지 않고 모양이 남게)
+  const POST_ENV = 0.55
+  const SWAGE_ENV = 0.8
   for (const m of [M.gateCap, M.post, M.swage]) {
     m.envMap = env.texture
     m.envMapIntensity = ENV_I
   }
+  M.post.envMapIntensity = POST_ENV
+  M.swage.envMapIntensity = SWAGE_ENV
   // 옆문 판은 방 반사를 조금 더 (어두운 방에서 판이 검게 묻히지 않고 중간 회색으로: 결을 따라 빛 줄이 선다)
   const GATE_ENV = 1.0
   M.gate.envMap = env.texture
   M.gate.envMapIntensity = GATE_ENV
   M.gate.envMapRotation.copy(scene.environmentRotation)
   for (const m of [M.gateCap, M.post, M.swage]) m.envMapRotation.copy(scene.environmentRotation)
+  // 앞 보호 틀 강관 · 버클 강철: 검은 방에서 검게 묻히지 않게 반사를 1.7 · 1.4 배 (사진의 밝은 크롬 관 · 버클)
+  M.rail.envMap = env.texture
+  M.rail.envMapIntensity = 0.9
+  M.steel.envMap = env.texture
+  M.steel.envMapIntensity = 1.4
+  M.deckTop.envMap = env.texture
+  // 진짜 하늘 HDR: 오면 스튜디오에 얹어 환경 빛을 다시 굽는다. 처음 그림은 이것을 0.8 s 까지 기다린다 (반사가 바뀌며 번쩍이지 않게).
+  //   움직임이 꺼져 있으면 (주행 · 움직임 줄이기) 기다리지 않는다: 밝아지는 페이드가 없으니 반사가 바뀌어도 번쩍임이 보이지 않는다
+  let envReady = false
+  let hdrOk = false
+  const initT = performance.now()
+  new HDRLoader().load(
+    ENV_URL,
+    (tex) => {
+      if (disposed) return tex.dispose()
+      const next = bakeEnv(tex)
+      tex.dispose()
+      const old = env
+      env = next
+      scene.environment = env.texture
+      for (const m of [M.gate, M.gateCap, M.post, M.swage, M.rail, M.steel, M.deckTop]) m.envMap = env.texture
+      old.dispose()
+      envReady = true
+      hdrOk = true
+      invalidate()
+    },
+    undefined,
+    () => {
+      envReady = true
+      invalidate()
+    },
+  )
+
+  /**
+   * 빛 지나감 (정차 화면의 '우와'): 비스듬한 빛 띠 하나가 적재함을 화면 왼쪽(뒤) → 오른쪽(앞)으로 천천히 쓸고 지나간다 (사진 광고의 라이트 바).
+   *   재료 셰이더에 세계 좌표 띠를 더한다 (그림 한 장 값: 빛 · 그림자 계산 없음). 금속은 진하게, 크라프트 · 바닥은 옅게.
+   *   uSweepAmt 0 이면 아무것도 하지 않는다 (주행 · 움직임 줄이기 · 세 번 다 지난 뒤)
+   */
+  const sweepU = { uSweepPos: { value: -9 }, uSweepAmt: { value: 0 }, uSweepDir: { value: new THREE.Vector3(0.62, 0.45, -0.79).normalize() } }
+  const addSweep = (m: THREE.Material, k: number) => {
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, sweepU, { uSweepK: { value: k } })
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vSweepW;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\nvSweepW = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;')
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vSweepW;\nuniform float uSweepPos;\nuniform float uSweepAmt;\nuniform float uSweepK;\nuniform vec3 uSweepDir;')
+        .replace(
+          '#include <opaque_fragment>',
+          `if ( uSweepAmt > 0.0 ) {
+	float sd = dot( vSweepW, uSweepDir ) - uSweepPos;
+	float band = 0.45 * exp( - sd * sd / 0.05 ) + exp( - sd * sd / 0.0035 );
+	float fr = 1.0 - abs( dot( normalize( normal ), normalize( vViewPosition ) ) );
+	outgoingLight += vec3( 1.0, 0.95, 0.88 ) * ( uSweepAmt * uSweepK * band * ( 0.3 + 0.7 * fr * fr ) );
+}
+#include <opaque_fragment>`,
+        )
+    }
+    m.customProgramCacheKey = () => 'sweep'
+  }
+  addSweep(M.gate, 1.3)
+  addSweep(M.gateCap, 2.4)
+  addSweep(M.swage, 1.4)
+  addSweep(M.rail, 1.8)
+  addSweep(M.post, 1.0)
+  addSweep(M.steel, 1.4)
+  addSweep(M.deckTop, 0.22)
+  addSweep(cartonMat, 0.16)
   const bagMats = [0xf4eee4, 0xe8dfd2, 0xddd3c6].map((t) => std(t, 0, 0.92, { map: bagTex, normalMap: cartonNormal, normalScale: new THREE.Vector2(0.5, 0.5), envMapIntensity: 0.6 }))
   /**
    * 포대 하나: 속이 찬 종이 포대 (베개처럼 둥근 옆 · 도톰한 윗면 · 꿰맨 양 끝이 납작하게 오므라든다). 모서리는 두께의 45 % 로 둥글게.
@@ -1351,6 +1621,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   ground.position.y = GROUND_Y
   ground.receiveShadow = true
   scene.add(ground)
+  ground.renderOrder = -1
   const floorPlane = track(new THREE.PlaneGeometry(1, 1))
   const bedSoft = new THREE.Mesh(floorPlane, M.bedSoft)
   bedSoft.rotation.x = -Math.PI / 2
@@ -1363,11 +1634,17 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   bedTight.position.y = GROUND_Y + 0.002
   const bedContact = new THREE.Mesh(floorPlane, M.bedContact)
   bedContact.rotation.x = -Math.PI / 2
-  // 구운 닿는 그림자: 적재함 바닥(밑 틀 포함)의 1.2 배, 바로 밑
-  bedContact.scale.set((W + 0.09) * 1.2, (L + 0.09) * 1.2, 1)
+  // 구운 닿는 그림자: 적재함 바닥(밑 틀 포함)의 1.4 배, 바로 밑 (2026-11-15: 1.2 → 1.4 · 더 진하게)
+  bedContact.scale.set((W + 0.09) * BED_CONTACT_K, (L + 0.09) * BED_CONTACT_K, 1)
   bedContact.position.y = GROUND_Y + 0.0015
-  scene.add(bedSoft, bedContact, bedTight)
-  for (const o of [ground, bedSoft, bedContact, bedTight]) o.layers.set(FLOOR_LAYER)
+  // 쇼룸 바닥 원판 (반짝이는 검은 바닥 + 옅은 1 m 격자, 가장자리는 투명): 그림자 판들보다 먼저 (밑에) 그린다
+  const floor = new THREE.Mesh(floorPlane, M.floor)
+  floor.rotation.x = -Math.PI / 2
+  floor.scale.set(FLOOR_D, FLOOR_D, 1)
+  floor.position.y = GROUND_Y - 0.0005
+  floor.renderOrder = -2
+  scene.add(floor, bedSoft, bedContact, bedTight)
+  for (const o of [ground, floor, bedSoft, bedContact, bedTight]) o.layers.set(FLOOR_LAYER)
 
 
   // ── 적재함 (PV5 오픈베드 2,420 x 1,785 mm · 옆문 · 뒷문 355 mm · 앞 보호 틀 · 고리). 차는 그리지 않는다 ──
@@ -1376,12 +1653,6 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   const sideH = BED.sideH
   const wallH = BED.wallH
   mesh(rbox(W + 0.09, 0.05, L + 0.09, 0.006), [M.deckSide, M.deckSide, M.deckTop, M.deckSide, M.deckSide, M.deckSide], bed, 0, -0.025, 0)
-  // 바닥 닳은 자국 (곱하기로 살짝 밝게 · 어둡게)
-  const wear = new THREE.Mesh(floorPlane, M.deckWear)
-  wear.rotation.x = -Math.PI / 2
-  wear.scale.set(W - 0.02, L - 0.02, 1)
-  wear.position.y = 0.0015
-  bed.add(wear)
   // 밑 틀 (세로 보 둘 + 가로 보 넷): 낮고 안쪽으로 들인다. 바닥 판 아래로 UNDER_H 만 (적재함 높이의 10 % 이하)
   for (const sx of [-1, 1]) mesh(rbox(0.09, UNDER_H, L - 0.12, 0.006), M.frame, bed, sx * 0.45, -0.05 - UNDER_H / 2, 0)
   for (const z of [-0.95, -0.32, 0.32, 0.95]) mesh(rbox(W - 0.16, UNDER_H * 0.8, 0.06, 0.006), M.frame, bed, 0, -0.05 - UNDER_H * 0.4, z)
@@ -1431,8 +1702,9 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   mesh(capTube(W + 0.09), M.gateCap, head, 0, CAP_Y, fz).rotation.z = Math.PI / 2
   // 앞 덮개 관 끝 (둥근 마개)
   for (const sx of [-1, 1]) mesh(track(new THREE.SphereGeometry(CAP_R, 20, 12)), M.gateCap, head, sx * (W / 2 + 0.045), CAP_Y, fz)
-  const TUBE_R = 0.021
-  const tube = (len: number) => track(new THREE.CylinderGeometry(TUBE_R, TUBE_R, len, 14, 1))
+  // 관 반지름 34 mm (예전 21 mm 의 1.6 배: 내비 크기에서 철사처럼 읽혔다), 28 각 (빛 줄이 끊기지 않게)
+  const TUBE_R = 0.032
+  const tube = (len: number) => track(new THREE.CylinderGeometry(TUBE_R, TUBE_R, len, 28, 1))
   const railY0 = CAP_Y + CAP_H / 2
   const postH = wallH - railY0
   const postG = tube(postH)
@@ -1441,7 +1713,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   const railG = tube(W - 0.02 + TUBE_R * 2)
   for (const y of [wallH, railY0 + postH * 0.5]) mesh(railG, M.rail, head, 0, y, fz).rotation.z = Math.PI / 2
   // 모서리 이음 (위 두 모서리를 둥근 공으로: 관이 꺾여 이어진 듯)
-  const knuckle = track(new THREE.SphereGeometry(TUBE_R * 1.02, 14, 10))
+  const knuckle = track(new THREE.SphereGeometry(TUBE_R * 1.02, 28, 14))
   for (const sx of [-1, 1]) mesh(knuckle, M.rail, head, sx * (W / 2 - 0.01), wallH, fz)
   let headShadow = true
   const setHeadShadow = (on: boolean) => {
@@ -1512,6 +1784,11 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   contactTight.layers.set(FLOOR_LAYER)
   scene.add(cargoRoot, straps, sensors, contact)
   let cargoBuilt: CargoKind | null = null
+  /** 닿는 그림자 · AO 의 제자리 값 (짐이 올라오는 동안 여기서 조여진다) */
+  const contactBase = new THREE.Vector3(1, 1, 1)
+  let contactOpacity = 0.85
+  let contactTightOpacity = 0.8
+  let itemAoOpacity = 0.8
 
   const dropMesh = (o: THREE.Object3D) =>
     o.traverse((x) => {
@@ -1640,6 +1917,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     mesh(rbox(0.05, 0.006, 0.05, 0.002), M.sensor, tagPuck, 0, 0.024, 0, false)
     tagPuck.position.set(w / 2 - 0.11, h, l / 2 - 0.11)
     contact.scale.set(w + 0.26, l + 0.26, 1)
+    contactBase.copy(contact.scale)
     // 좁은 그림자: 질감의 진한 칸이 가운데 80 % 라 1.05 / 0.8 배로 키우면 진한 칸 = 짐 바닥 1.05 배
     const k = 1.05 / 0.8
     contactTight.scale.set((w * k) / (w + 0.26), (l * k) / (l + 0.26), 1)
@@ -1683,14 +1961,17 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     let m = strapMats.get(k)
     if (!m) {
       const map = rubber ? bungeeTex : webTex
+      // 웨빙 = 공단 같은 폴리에스터 짜임: 거칠기 0.6 + 천 sheen (비스듬히 보이는 띠 가장자리가 은은히 밝아진다). 고무바는 sheen 없이
+      const satin = (color: number, rough: number, extra: THREE.MeshPhysicalMaterialParameters = {}) =>
+        track(new THREE.MeshPhysicalMaterial({ color, metalness: 0, roughness: rubber ? Math.max(rough, 0.85) : rough, map, side: THREE.DoubleSide, sheen: rubber ? 0 : 0.7, sheenRoughness: 0.42, sheenColor: new THREE.Color(0xffffff), ...extra }))
       // 더 걸 자리: 반투명 '유령' 띠가 아니라 불투명한 진짜 띠 (라쳇 · 갈고리까지) 를 문제 색(주황)으로 그린다.
       // 비어 있는 자리라는 것은 꼬리표가 말한다 ("여기에 바 하나 더")
       if (hint) {
         const ht = tone === 'neutral' || tone === 'grey' || tone === 'green' ? 'orange' : tone
-        m = std(WEB_BASE[ht], 0, 0.8, { map, side: THREE.DoubleSide, emissive: WEB_HEX[ht], emissiveIntensity: HINT_GLOW })
+        m = satin(WEB_BASE[ht], 0.62, { emissive: WEB_HEX[ht], emissiveIntensity: HINT_GLOW, sheenColor: new THREE.Color(WEB_HEX[ht]) })
         hintMats.add(m)
-      } else if (!problem(tone)) m = std(WEBBING, 0, 0.9, { map, side: THREE.DoubleSide })
-      else m = std(WEB_BASE[tone as 'orange' | 'red'], 0, 0.8, { map, side: THREE.DoubleSide, emissive: WEB_HEX[tone as 'orange' | 'red'], emissiveIntensity: PROBLEM_GLOW })
+      } else if (!problem(tone)) m = satin(WEBBING, 0.66, { sheenColor: new THREE.Color(0x8c96a4) })
+      else m = satin(WEB_BASE[tone as 'orange' | 'red'], 0.62, { emissive: WEB_HEX[tone as 'orange' | 'red'], emissiveIntensity: PROBLEM_GLOW, sheenColor: new THREE.Color(WEB_HEX[tone as 'orange' | 'red']) })
       strapMats.set(k, m)
       // 문제 벨트(주황 · 빨강)는 정차 중 천천히 숨쉰다 (frame 에서 emissiveIntensity 를 바꾼다)
       if (problem(tone) && !hint) pulseMats.add(m)
@@ -1893,7 +2174,12 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   const themeMo = new MutationObserver(() => readTheme())
   themeMo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'], subtree: true })
   // 무대 위 앱 부품(알림 토스트 · 보기 단추)이 생기거나 사라지면 꼬리표 자리를 다시 고른다
-  const uiMo = new MutationObserver(() => invalidate())
+  //   (2026-11-15) 보이는 무대가 바뀌면 (폰 보기 알약이 늦게 붙는 경우) 적재함 자리도 다시 맞춘다
+  const uiMo = new MutationObserver(() => {
+    const v = visibleRect()
+    if (Math.abs(v.x - vis.x) + Math.abs(v.y - vis.y) + Math.abs(v.w - vis.w) + Math.abs(v.h - vis.h) > 2) refit()
+    else invalidate()
+  })
   queueMicrotask(() => {
     const box = tagLayer.parentElement?.parentElement
     if (box) uiMo.observe(box, { childList: true })
@@ -1910,6 +2196,10 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   const motionOk = () => !reduceMq?.matches && !host.closest('[data-mode="drive"]')
   let hasPulse = false
   let hasHint = false
+  let pulseT0 = -1
+  let hintT0 = -1
+  let pulseKey = ''
+  let hintKey = ''
   let slideKey = ''
   let slide: { t0: number; dx: number; dz: number } | null = null
   const easeOut = (k: number) => 1 - Math.pow(1 - k, 3)
@@ -1936,7 +2226,45 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   const frontTip = new THREE.Vector3()
   let frontOnDeck = false
 
+  /**
+   * 값 열쇠 (2026-11-15, 그리기 아끼기): 앱은 정차 중에도 약 2 s 마다 같은 값을 새 객체로 넘긴다. 예전에는 그때마다 벨트를 다시 만들고
+   *   그림자 지도 · PCSS · MSAA · GTAO 를 모두 다시 그렸다 (같은 그림 35 장). 이제:
+   *   값이 그대로면 아무것도 안 한다 · 꼬리표 글만 바뀌면 꼬리표 자리만 다시 고른다 (3D 는 안 그린다) ·
+   *   그림자 지도는 짐 자세 · 종류 · 벨트 모양이 바뀔 때만 다시 계산한다
+   */
+  let lastFullKey = ''
+  let lastSceneKey = ''
+  let lastShadowKey = ''
+  const r3 = (v: number) => Math.round(v * 1000) / 1000
   function update(i: BedInput) {
+    const fullKey = JSON.stringify(i)
+    if (fullKey === lastFullKey) return
+    lastFullKey = fullKey
+    const shadowKey = JSON.stringify([
+      i.kind,
+      i.frontWall,
+      i.beltType,
+      !!i.empty,
+      i.lost,
+      !!i.fallen,
+      i.pose ? [r3(i.pose.x), r3(i.pose.z), r3(i.pose.lift), Math.round(i.pose.tilt * 10) / 10] : null,
+      i.shift ? [r3(i.shift.x), r3(i.shift.z)] : null,
+      i.belts.map((b) => [!!b.hint, b.loose ?? null, b.tone === 'red']),
+      i.sensors ?? null,
+    ])
+    const sceneKey = JSON.stringify([shadowKey, i.belts.map((b) => b.tone), i.ghost, !!i.focus])
+    if (sceneKey === lastSceneKey && input) {
+      // 꼬리표 · 배지 글 · 화살 색만 바뀌었다: 3D 는 그대로, 겹침 자리만 다시 고른다
+      input = i
+      applyTags(i)
+      if (shown) placeOverlay()
+      else invalidate()
+      return
+    }
+    lastSceneKey = sceneKey
+    dbg.updates++
+    const shadowChanged = shadowKey !== lastShadowKey
+    lastShadowKey = shadowKey
     input = i
     const spec = CARGO[i.kind].size
     if (cargoBuilt !== i.kind) buildCargo(i.kind)
@@ -1959,11 +2287,53 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     let cz = zc + pz
     // 앞벽을 뚫지 않게 (실제로는 벽에서 멈춘다)
     if (Math.abs(tilt) < 5) cz = Math.max(-L / 2 + 0.01 + spec.l / 2, cz)
+    const tipSide = px < -0.01 ? -1 : 1
+    const rz = -tipSide * THREE.MathUtils.degToRad(tilt)
+    if (!hidden) {
+      // 기운 짐이 옆문 · 바닥을 뚫지 않게 (2026-11-15, 넘어지는 중 자세 = 오른쪽 84 cm · 30°): 짐 단면(가로 x 높이)의 네 모서리를 돌려
+      //   가장 낮은 모서리가 바닥 위에 오도록 들고, 옆문 윗 덮개 높이 아래 부분은 옆문 안쪽 면 안에 들어오게 x 를 당긴다.
+      //   윗 덮개보다 높은 부분은 밖으로 나가도 된다 (윗 덮개에 기대어 넘어가는 모습)
+      const c = Math.cos(rz)
+      const s = Math.sin(rz)
+      const q = [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ].map(([a, b]) => {
+        const x = (a * spec.w) / 2
+        const y = (b * spec.h) / 2
+        return { x: x * c - y * s, y: spec.h / 2 + lift + x * s + y * c }
+      })
+      const minY = Math.min(...q.map((p) => p.y))
+      if (minY < 0) {
+        lift -= minY
+        for (const p of q) p.y -= minY
+      }
+      const railTop = BED.sideH + 0.045
+      let x0 = Infinity
+      let x1 = -Infinity
+      for (let k = 0; k < 4; k++) {
+        const a = q[k]
+        const b = q[(k + 1) % 4]
+        if (a.y <= railTop) {
+          x0 = Math.min(x0, a.x)
+          x1 = Math.max(x1, a.x)
+        }
+        if ((a.y - railTop) * (b.y - railTop) < 0) {
+          const x = a.x + ((railTop - a.y) / (b.y - a.y)) * (b.x - a.x)
+          x0 = Math.min(x0, x)
+          x1 = Math.max(x1, x)
+        }
+      }
+      const wall = W / 2 - 0.004
+      if (Number.isFinite(x1) && px + x1 > wall) px = wall - x1
+      if (Number.isFinite(x0) && px + x0 < -wall) px = -wall - x0
+    }
     cargoPos.set(px, lift, cz)
     moved = Math.hypot(px, cz - zc)
-    const tipSide = px < -0.01 ? -1 : 1
     cargoRoot.position.set(px, spec.h / 2 + lift, cz)
-    cargoRoot.rotation.set(0, 0, -tipSide * THREE.MathUtils.degToRad(tilt))
+    cargoRoot.rotation.set(0, 0, rz)
     cargoBody.position.set(0, -spec.h / 2, 0)
     cargoRoot.visible = !hidden
     tagPuck.visible = !!i.sensors?.tag
@@ -1976,13 +2346,15 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     contact.visible = !hidden
     contact.position.set(px, 0.004, cz)
     const onFloor = Math.max(0, 1 - lift / 0.25) * (Math.abs(tilt) > 25 ? 0.4 : 1)
-    M.contact.opacity = 0.85 * onFloor
+    contactOpacity = M.contact.opacity = 0.85 * onFloor
     // 좁은 그림자는 짐이 바닥에 닿아 있을 때만 (들리거나 3° 넘게 기울면 끈다: 기운 짐 밑에 네모 그림자가 남지 않게)
-    M.contactTight.opacity = 0.8 * Math.max(0, 1 - lift / 0.05)
+    contactTightOpacity = M.contactTight.opacity = 0.8 * Math.max(0, 1 - lift / 0.05)
     contactTight.visible = Math.abs(tilt) < 3
     // 짐 하나하나 밑 AO 도 바닥에 닿아 있을 때만 (기울거나 들리면 공중에 검은 테가 뜨지 않게)
-    M.itemAo.opacity = 0.8 * Math.max(0, 1 - lift / 0.03)
+    itemAoOpacity = M.itemAo.opacity = 0.8 * Math.max(0, 1 - lift / 0.03)
     M.itemAo.visible = Math.abs(tilt) < 3
+    contact.scale.copy(contactBase)
+    cargoBody.scale.y = 1
 
     // 벨트: 갈고리는 적재함 고리에 (출발 때 자리에서 가장 가까운 빈 고리), 윗면은 짐을 따라간다
     clearGroup(straps)
@@ -2004,8 +2376,17 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     /** 띠가 옆면을 떠나 갈고리로 가는 높이 (짐 좌표): 짐 높이의 30 %, 6 ~ 22 cm */
     const yDown = Math.min(cy, THREE.MathUtils.clamp(spec.h * 0.3, 0.06, 0.22))
     let lastRing = -1
+    // 새 짐이 올라오는 중이면 (arrival) 벨트를 하나씩 그려 넣으므로 벨트마다 무리(bg · gg)를 따로 두고 다 그린 뒤에 합친다
+    const arriving = startArrivalIf(i)
+    beltAnim = []
     for (let k = 0; k < n; k++) {
       const b = i.belts[k]
+      const bg = new THREE.Group()
+      straps.add(bg)
+      const gg = new THREE.Group()
+      guards.add(gg)
+      const anim: BeltAnim = { group: bg, guard: gg, web: null }
+      beltAnim.push(anim)
       const zl = -spec.l / 2 + (spec.l * (k + 0.5)) / Math.max(1, n)
       let hookZ = zc + zl
       let ri = -1
@@ -2067,9 +2448,9 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       const mat = strapMat(b.tone, !!b.hint, rubber)
       if (rubber) {
         const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', loose ? 0.5 : 0.05), 64, 0.011, 8)
-        mesh(tube, mat, straps, 0, 0, 0, !b.hint)
+        anim.web = mesh(tube, mat, bg, 0, 0, 0, !b.hint)
       } else {
-        mesh(ribbon(pts, 0.05, loose ? 0.5 : 0.05), mat, straps, 0, 0, 0, !b.hint)
+        anim.web = mesh(ribbon(pts, 0.05, loose ? 0.5 : 0.05), mat, bg, 0, 0, 0, !b.hint)
       }
       // 버클 · 센서는 보는 쪽 (오른쪽, +X) 내려오는 띠에
       const c = top[3]
@@ -2080,9 +2461,9 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       {
         // 갈고리 (양 끝, 고리에 건다). 더 걸 자리 띠도 진짜 띠처럼 갈고리 · 라쳇까지 그린다
         for (const [p, q] of [[a, top[0]], [a2, c]] as const) {
-          const hk = mesh(G.hook, M.steel, straps, p.x, p.y, p.z, false)
+          const hk = mesh(G.hook, M.steel, bg, p.x, p.y, p.z, false)
           hk.rotation.z = hidden ? Math.PI / 2 : Math.atan2(q.y - p.y, q.x - p.x) - Math.PI / 2
-          mesh(G.hookTip, M.steel, straps, p.x, 0.022, p.z, false)
+          mesh(G.hookTip, M.steel, bg, p.x, 0.022, p.z, false)
         }
       }
       if (!rubber && !hidden) {
@@ -2095,7 +2476,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         mesh(G.ratchetSpool, M.steel, rt, -0.032, 0.012, 0, false).rotation.x = Math.PI / 2
         mesh(G.ratchetHandle, M.steel, rt, -0.062, 0.068, 0).rotation.z = 0.5
         mesh(G.ratchetGrip, gripMat, rt, -0.094, 0.126, 0, false).rotation.z = 0.5
-        straps.add(rt)
+        bg.add(rt)
       }
       if (!hidden) {
         // 모서리 보호대 (띠가 짐 모서리를 넘는 곳, 짐과 같이 움직인다): 짐 모서리를 감싸는 두께 2 cm 의 굽은 ㄱ자 판.
@@ -2122,7 +2503,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
           sh.closePath()
           const eg = new THREE.ExtrudeGeometry(sh, { depth: gw, bevelEnabled: false, curveSegments: 1 })
           eg.translate(0, 0, zl - gw / 2)
-          mesh(eg, guardMat, guards, 0, 0, 0, false)
+          mesh(eg, guardMat, gg, 0, 0, 0, false)
         }
       }
       // 장력 센서 (앞 끝 = c1, 뒤 끝 = c2)
@@ -2134,15 +2515,26 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       beltPts.push({ topL: top[1].clone(), topR: top[2].clone(), buckle, cell, sideR: a2.clone().lerp(c, 0.82), edgeL: top[0].clone(), tanR: c.clone(), hookR: a2.clone() })
     }
 
-    // 벨트 · 센서 · 모서리 보호대 부품을 재료마다 한 덩어리로 (벨트 넷 = 그리기 대여섯 번)
-    bake(straps)
+    // 벨트 · 센서 · 모서리 보호대 부품을 재료마다 한 덩어리로 (벨트 넷 = 그리기 대여섯 번).
+    //   새 짐이 올라오는 중이면 벨트를 하나씩 그려 넣은 뒤 (step → finishArrival) 합친다
     bake(sensors)
-    bake(guards)
+    if (arriving) applyArrival(performance.now())
+    else {
+      bake(straps)
+      bake(guards)
+    }
 
     // 짐이 밀렸으면 출발 때 자리에서 지금 자리로 한 번 미끄러져 보인다 (정차 중, 1.2 s). 짐 · 벨트 · 센서를 같이 옮긴다
-    const pulling = i.belts.some((b) => b.tone === 'red' && !b.hint)
+    // 문제 벨트 (주황 · 빨강) 숨쉬기 · 더 걸 자리 숨쉬기: 문제가 새로 생기거나 바뀐 때부터 다섯 번
+    const pulling = i.belts.some((b) => problem(b.tone) && !b.hint)
     hasPulse = pulling && !hidden && !i.empty
     hasHint = !hidden && !i.empty && i.belts.some((b) => b.hint)
+    const pk = hasPulse ? i.belts.map((b) => b.tone + (b.hint ? 'h' : '')).join() : ''
+    if (pk && pk !== pulseKey) pulseT0 = performance.now()
+    pulseKey = pk
+    const hk = hasHint ? i.belts.map((b) => (b.hint ? 1 : 0)).join() : ''
+    if (hk && hk !== hintKey) hintT0 = performance.now()
+    hintKey = hk
     const sk = !hidden && !i.empty && moved > 0.02 ? [i.kind, cargoPos.x.toFixed(2), cargoPos.z.toFixed(2)].join(':') : ''
     if (sk && sk !== slideKey && motionOk()) {
       slide = { t0: performance.now() + 250, dx: startPos.x - cargoPos.x, dz: startPos.z - cargoPos.z }
@@ -2181,19 +2573,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       frontTip.set(0, 0.01, z0 - 0.06)
     } else frontAt.copy(FRONT_TOP)
 
-    // 폰 무대(작은 무대)는 한 번에 하나만: 꼬리표 하나 (화살이 있으면 화살 꼬리표) + 화살. 순서 배지는 화면의 순서 목록이 맡는다
-    const small = tagLayer.parentElement?.getAttribute('data-size') === 'sm'
-    let tagList = (i.tags ?? autoTags(i)).filter((t) => t.at.kind !== 'arrow' || arrow)
-    if (small) {
-      const a = tagList.find((t) => t.at.kind === 'arrow')
-      tagList = a ? [a] : tagList.slice(0, 1)
-    } else {
-      // 내비도 꼬리표는 하나: 가장 급한 것 (빨강 > 주황 > 나머지, 같으면 넘겨 준 순서)
-      const rank = (t: MarkTone) => (t === 'red' ? 0 : t === 'orange' ? 1 : 2)
-      tagList = [...tagList].sort((a, b) => rank(a.tone) - rank(b.tone))
-    }
-    setTags(tagList)
-    setBadges(i.empty || hidden || small ? [] : i.belts)
+    applyTags(i)
 
     // 볼 범위: 모든 모드 · 화면에서 적재함 전체 (밑 틀 ~ 앞 보호 틀 위) + 짐 (기울면 기운 모양 그대로) + 출발 때 자리.
     // 다시 묶기도 같은 범위 (짐만 크게 보면 적재함 왼쪽 · 아래가 잘려 어디인지 읽히지 않는다)
@@ -2221,10 +2601,121 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       computeGoal()
       startTween()
     }
-    shadowDirty = true
+    // 그림자 지도는 짐 자세 · 종류 · 벨트 모양이 바뀔 때만 (벨트 색 · 출발 때 자리만 바뀌면 그대로)
+    if (shadowChanged) shadowDirty = true
+    // 새 짐: 시점 다가오기를 다시 (시점 바꿈보다 나중에 둔다: 다가오기가 이긴다)
+    if (arrival && arrival.t0 < 0 && interactive && view === '3d' && !userMoved) {
+      intro = { t0: -1 }
+      tween = null
+    }
     invalidate()
   }
 
+  /** 꼬리표 · 순서 배지 고르기 (3D 와 따로: 글만 바뀌면 이것만 다시 한다) */
+  function applyTags(i: BedInput) {
+    // 폰 무대(작은 무대)는 한 번에 하나만: 꼬리표 하나 (화살이 있으면 화살 꼬리표) + 화살. 순서 배지는 화면의 순서 목록이 맡는다
+    const small = tagLayer.parentElement?.getAttribute('data-size') === 'sm'
+    let tagList = (i.tags ?? autoTags(i)).filter((t) => t.at.kind !== 'arrow' || arrow)
+    if (small) {
+      const a = tagList.find((t) => t.at.kind === 'arrow')
+      tagList = a ? [a] : tagList.slice(0, 1)
+    } else {
+      // 내비도 꼬리표는 하나: 가장 급한 것 (빨강 > 주황 > 나머지, 같으면 넘겨 준 순서)
+      const rank = (t: MarkTone) => (t === 'red' ? 0 : t === 'orange' ? 1 : 2)
+      tagList = [...tagList].sort((a, b) => rank(a.tone) - rank(b.tone))
+    }
+    setTags(tagList)
+    setBadges(i.empty || hidden || small ? [] : i.belts)
+  }
+
+  // ── 새 짐이 올라온다 (2026-11-15, '우와'를 확인 뒤로): 상차 확인 · 새 운송장일 때 한 번.
+  //   짐이 5 cm 위에서 내려앉고 (340 ms, 끝이 느린 곡선) 2.5 % 눌렸다 펴진다 (80 ms) · 닿는 그림자가 같이 조여진다 →
+  //   벨트가 하나씩 (80 ms 간격) 갈고리에서 짐을 넘어 반대쪽 갈고리까지 그려진다 (260 ms) → 꼬리표가 나타난다 →
+  //   300 ms 뒤 빛 띠가 한 번 지나간다. 시점 다가오기 (1.2 s) 도 같이. 주행 · 움직임 줄이기면 모두 없이 제자리로.
+  //   빈 적재함(상차 시트 뒤) 에서는 아무것도 하지 않는다: 확인을 누른 뒤에 보인다
+  type BeltAnim = { group: THREE.Group; guard: THREE.Group; web: THREE.Mesh | null }
+  let beltAnim: BeltAnim[] = []
+  /** 개발 서버 화면 검사용 느리게 (dev.slow). 늘 1 */
+  let devSlow = 1
+  const dbg = { arrivals: [] as string[], updates: 0, finish: [] as string[] }
+  let loadKey = ''
+  let loadId: string | null = null
+  let arrival: { t0: number; done: boolean } | null = null
+  const ARR_DELAY = 160
+  const ARR_FALL = 340
+  const ARR_SETTLE = 80
+  const ARR_DROP = 0.05
+  const ARR_BELT_GAP = 40
+  const ARR_STAGGER = 80
+  const ARR_BELT_MS = 260
+  /** 다 끝나는 때 (arrival.t0 부터, ms) */
+  const arrivalEnd = () => ARR_DELAY + ARR_FALL + ARR_SETTLE + ARR_BELT_GAP + Math.max(0, beltAnim.length - 1) * ARR_STAGGER + ARR_BELT_MS
+  /** 새 짐인지 보고 (짐 종류 · 앞벽 · 운송장) 맞으면 올라오기를 시작한다. 올라오는 중이면 true */
+  function startArrivalIf(i: BedInput) {
+    const k = i.empty || hidden ? '' : [i.kind, i.frontWall ? 1 : 0, loadId ?? ''].join('|')
+    if (k && k !== loadKey && motionOk()) {
+      arrival = { t0: -1, done: false }
+      dbg.arrivals.push(k + ' @' + Math.round(performance.now()) + ' prev=' + loadKey)
+    }
+    loadKey = k
+    if (!k && arrival) {
+      arrival = null
+      tagLayer.style.opacity = ''
+    }
+    return !!arrival && !arrival.done
+  }
+  /** 올라오기 한 장면 (now). 끝났거나 움직임이 꺼졌으면 제자리로 두고 벨트를 합친다 */
+  function applyArrival(now: number) {
+    if (!arrival) return
+    const spec = input ? CARGO[input.kind].size : null
+    const t = arrival.t0 < 0 ? 0 : (now - arrival.t0) / devSlow
+    const finish = arrival.done || !motionOk() || t >= arrivalEnd()
+    // 짐: 내려앉기 + 눌림
+    const tf = THREE.MathUtils.clamp((t - ARR_DELAY) / ARR_FALL, 0, 1)
+    const drop = finish ? 0 : ARR_DROP * (1 - easeOut(tf))
+    const ts = (t - ARR_DELAY - ARR_FALL) / ARR_SETTLE
+    const squash = finish || ts <= 0 || ts >= 1 ? 1 : 1 - 0.025 * Math.sin(Math.PI * ts)
+    if (spec) cargoRoot.position.y = spec.h / 2 + cargoPos.y + drop
+    cargoBody.scale.y = squash
+    // 닿는 그림자: 들려 있으면 넓고 옅다 → 내려앉으며 조여진다
+    const e = drop / ARR_DROP
+    contact.scale.copy(contactBase).multiplyScalar(1 + 0.3 * e).setZ(1)
+    M.contact.opacity = contactOpacity * (1 - 0.6 * e)
+    M.contactTight.opacity = contactTightOpacity * (1 - e)
+    M.itemAo.opacity = itemAoOpacity * (1 - e)
+    // 벨트: 하나씩 그려 넣는다 (띠는 그리는 범위를 늘려 갈고리 → 짐 위 → 반대쪽 갈고리)
+    const t0b = ARR_DELAY + ARR_FALL + ARR_SETTLE + ARR_BELT_GAP
+    beltAnim.forEach((b, k) => {
+      const p = finish ? 1 : THREE.MathUtils.clamp((t - t0b - k * ARR_STAGGER) / ARR_BELT_MS, 0, 1)
+      b.group.visible = p > 0
+      b.guard.visible = p > 0
+      const g = b.web?.geometry
+      if (g?.index) {
+        const n = g.index.count
+        g.setDrawRange(0, p >= 1 ? Infinity : Math.ceil((n * easeOut(p)) / 6) * 6)
+      }
+    })
+    sensors.visible = finish || t >= arrivalEnd() - ARR_BELT_MS * 0.5
+    tagLayer.style.opacity = finish || t >= arrivalEnd() - 60 ? '1' : '0'
+    shadowDirty = true
+    if (finish) {
+      dbg.finish.push(`t=${Math.round(t)} done=${arrival.done} motion=${motionOk()} @${Math.round(now)}`)
+      arrival.done = true
+      for (const b of beltAnim) {
+        b.web?.geometry.setDrawRange(0, Infinity)
+        b.group.visible = b.guard.visible = true
+      }
+      bake(straps)
+      bake(guards)
+      beltAnim = []
+      arrival = null
+      // 빛 띠 한 번: 다 내려앉고 300 ms 뒤 (움직임이 켜져 있을 때만)
+      if (motionOk() && view === '3d' && !userMoved) {
+        sweepT0 = now + 300
+        sweepsDone = false
+      }
+    }
+  }
   // ── 카메라 ──
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enabled = interactive
@@ -2238,6 +2729,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   let userMoved = false
   const goal = { pos: new THREE.Vector3(), target: new THREE.Vector3() }
   let tween: { t0: number; from: THREE.Vector3; fromT: THREE.Vector3 } | null = null
+  /** 처음 보일 때 다가오기 (1.2 s): 조금 멀고 옆에서 시작해 제자리로 (정차 · 움직임 허용일 때만) */
+  let intro: { t0: number } | null = null
   let width = 1
   let height = 1
 
@@ -2407,8 +2900,78 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   }
   function startTween() {
     tween = { t0: performance.now(), from: camera.position.clone(), fromT: controls.target.clone() }
+    // 시점 바꿈이 시작되면 처음 다가오기는 그만 (바꿈이 지금 자리에서 이어 간다)
+    intro = null
     active = camera
     controls.enabled = interactive && view === '3d'
+  }
+
+  // ── 후처리 (그릴 때만): HDR 장면(MSAA 4) → 반 해상도 GTAO → 마지막 그림 (ACES · 대비 · 비네트, GRADE_FS) ──
+  //   반 정밀 그림을 그릴 수 없는 기기면 후처리 없이 바로 그린다 (ACES 톤 매핑은 렌더러가)
+  const canHalf = renderer.extensions.has('EXT_color_buffer_half_float') || renderer.extensions.has('EXT_color_buffer_float')
+  const post = canHalf
+    ? (() => {
+        const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: Math.min(4, renderer.capabilities.maxSamples) })
+        const gtao = new GTAOPass(scene, camera, 1, 1)
+        gtao.updateGtaoMaterial({ radius: 0.16, distanceExponent: 1.4, thickness: 0.6, scale: 1.15, samples: 12, distanceFallOff: 1 })
+        gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 })
+        gtao.output = GTAOPass.OUTPUT.Off
+        gtao.setSceneClipBox(new THREE.Box3(new THREE.Vector3(-2.2, GROUND_Y - 0.05, -2.6), new THREE.Vector3(2.2, 3.5, 2.6)))
+        const white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1)
+        white.needsUpdate = true
+        const mat = new THREE.ShaderMaterial({
+          vertexShader: GRADE_VS,
+          fragmentShader: GRADE_FS,
+          uniforms: {
+            tScene: { value: rt.texture },
+            tAo: { value: white },
+            uAo: { value: 1 },
+            uExposure: { value: 1 },
+            uContrast: { value: 0.16 },
+            uVignette: { value: 0.32 },
+            uAspect: { value: new THREE.Vector2(1, 1) },
+          },
+          depthTest: false,
+          depthWrite: false,
+          blending: THREE.NoBlending,
+        })
+        const quad = new FullScreenQuad(mat)
+        return { rt, gtao, white, mat, quad }
+      })()
+    : null
+  if (post) renderer.toneMapping = THREE.NoToneMapping
+  /** AO 를 그릴 때 투명한 것(닿는 그림자 판 · 출발 때 자리 · 바닥 그림자 판 · 닳은 자국)은 깊이에서 뺀다 (유령 상자 둘레에 AO 띠가 생기지 않게) */
+  const aoHidden: THREE.Object3D[] = []
+  let renderCount = 0
+  let shadowRenders = 0
+  let sceneCalls = 0
+  function drawScene(withAo: boolean) {
+    renderCount++
+    if (!post) {
+      renderer.render(scene, active)
+      sceneCalls = renderer.info.render.calls
+      return
+    }
+    renderer.setRenderTarget(post.rt)
+    renderer.clear()
+    renderer.render(scene, active)
+    sceneCalls = renderer.info.render.calls
+    const ao = withAo && active === camera
+    if (ao) {
+      scene.traverseVisible((o) => {
+        const m = (o as THREE.Mesh).material as THREE.Material | undefined
+        if ((o as THREE.Mesh).isMesh && m && !Array.isArray(m) && (m.transparent || !m.depthWrite)) aoHidden.push(o)
+      })
+      for (const o of aoHidden) o.visible = false
+      post.gtao.camera = camera
+      post.gtao.render(renderer, post.rt, post.rt, 0, false)
+      for (const o of aoHidden) o.visible = true
+      aoHidden.length = 0
+    }
+    post.mat.uniforms.tAo.value = ao ? post.gtao.gtaoMap : post.white
+    post.mat.uniforms.uExposure.value = renderer.toneMappingExposure
+    renderer.setRenderTarget(null)
+    post.quad.render(renderer)
   }
 
   function layout() {
@@ -2417,6 +2980,15 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     const pr = pixelRatio(host, dprCap)
     renderer.setPixelRatio(pr)
     renderer.setSize(width, height, false)
+    if (post) {
+      const bw = Math.round(width * pr)
+      const bh = Math.round(height * pr)
+      post.rt.setSize(bw, bh)
+      // AO 는 반 해상도 (헤드 유닛 성능)
+      post.gtao.setSize(Math.max(1, Math.round(bw / 2)), Math.max(1, Math.round(bh / 2)))
+      const m = Math.max(width, height)
+      post.mat.uniforms.uAspect.value.set(width / m, height / m)
+    }
     camera.aspect = width / height
     camera.updateProjectionMatrix()
     computeGoal()
@@ -2436,18 +3008,33 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     invalidate()
   }
 
-  // ── 그리기 (필요할 때만) ──
+  // ── 그리기 (필요할 때만): 그릴 것이 있을 때만 다음 화면을 부른다. 다가오기 · 빛 지나감 · 숨쉬기가 끝나면 고리도 멈춘다 ──
   let dirty = true
   let raf = 0
   let lastInput = 0
+  function kick() {
+    if (!raf && !disposed) raf = requestAnimationFrame(frame)
+  }
   function invalidate() {
     dirty = true
+    kick()
   }
   controls.addEventListener('change', invalidate)
   controls.addEventListener('start', () => {
     lastInput = performance.now()
     userMoved = true
+    // 손가락이 닿으면 처음 다가오기 · 빛 지나감은 그만 (손이 이긴다)
+    intro = null
+    kick()
   })
+  controls.addEventListener('end', () => {
+    lastInput = performance.now()
+    kick()
+  })
+  // 주행으로 바뀌면(data-mode) · 움직임 줄이기가 켜지면 한 번 더 그려 움직이던 것을 제자리 · 고른 빛으로 둔다
+  const modeMo = new MutationObserver(() => invalidate())
+  modeMo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode'], subtree: true })
+  reduceMq?.addEventListener?.('change', invalidate)
   const prj = new THREE.Vector3()
   const toScreen = (p: THREE.Vector3) => {
     prj.copy(p).project(active)
@@ -2655,10 +3242,34 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     const sx = width / rr.width
     const sy = height / rr.height
     const out: Rc[] = []
+    /** 바탕이 투명한 감싸개 (폰 보기 알약의 .ph-stage-ctl = 무대 높이 30 % 의 빈 칸) 는 안에 실제로 보이는 것의 네모로 잰다 */
+    const tight = (el: Element, depth = 0): DOMRect | null => {
+      const r = el.getBoundingClientRect()
+      if (r.width < 1 || r.height < 1) return null
+      if (depth > 2 || !el.children.length) return r
+      // 글이 바로 든 것 (caption 같은 것) 은 그대로
+      if (Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.textContent?.trim())) return r
+      const cs = getComputedStyle(el)
+      const clear = (cs.backgroundColor === 'transparent' || /rgba\(.*,\s*0\)$/.test(cs.backgroundColor)) && cs.borderTopWidth === '0px' && cs.backgroundImage === 'none'
+      if (!clear) return r
+      let x0 = Infinity
+      let y0 = Infinity
+      let x1 = -Infinity
+      let y1 = -Infinity
+      for (const c of Array.from(el.children)) {
+        const q = tight(c, depth + 1)
+        if (!q) continue
+        x0 = Math.min(x0, q.left)
+        y0 = Math.min(y0, q.top)
+        x1 = Math.max(x1, q.right)
+        y1 = Math.max(y1, q.bottom)
+      }
+      return x1 > x0 && y1 > y0 ? new DOMRect(x0, y0, x1 - x0, y1 - y0) : null
+    }
     for (const el of Array.from(box.children)) {
       if (el === root || !(el instanceof HTMLElement)) continue
-      const r = el.getBoundingClientRect()
-      if (r.width < 1 || r.height < 1) continue
+      const r = tight(el)
+      if (!r) continue
       const x0 = Math.max(r.left, rr.left)
       const y0 = Math.max(r.top, rr.top)
       const x1 = Math.min(r.right, rr.right)
@@ -2841,6 +3452,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     //   점수 = 끌어 선 길이 + 짐 위를 지난 길이 x 8 + 출발 때 자리 · 화살과 겹침 벌점. 못 찾으면 길이 · 짐 조건을 풀어 다시.
     const lens = [0.3, 0.55, 0.8, 1].map((k) => k * cap)
     const looser = [1.4, 2, 2.8].map((k) => k * cap)
+    // 적재함 몸통 윤곽 (옆문 · 뒷문 · 윗 덮개까지, 앞 보호 틀 관은 빼고): 화살 꼬리표는 이 밖에 둔다 (적재함 테두리를 가로질러 덮지 않게)
+    const bedHull = active === ortho ? [] : boxHull(boxOf(-W / 2 - 0.045, -0.05, -L / 2 - 0.05, W / 2 + 0.045, BED.sideH + 0.05, L / 2 + 0.045))
     for (const e of tagEls.values()) {
       // 문 뒤에 가린 기준점은 빼되, 모두 가렸으면 (화살처럼 화면 위에 그린 것) 그대로 쓴다
       const all = anchorsOf(e.at)
@@ -2893,6 +3506,10 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
               if (onCargo) score += 600
               score += inside * 8
               if (!strict) score += Math.max(0, Ln - base * 1.1 - cap) * 3
+              if (e.at.kind === 'arrow' && bedHull.length && rectHitsPoly(r, bedHull, 4)) {
+                if (strict) continue
+                score += 400
+              }
               if (ghostHull.length && rectHitsPoly(r, ghostHull, 4)) score += 120
               if (chevHull.length && rectHitsPoly(r, chevHull, 4)) score += 60
               // 옆문 · 뒷문 위에 걸치면 (알약이 적재함 테두리를 덮어 어수선하다) 조금 피한다
@@ -2991,17 +3608,102 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
 
   // 시점 바꿈: 600 ms, 들어가고 나오는 곡선 (--ease-emph 와 같은 느낌). 움직임이 꺼져 있으면 바로
   const easeInOut = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
-  // 정차 중 쉼 (사용자가 5 s 동안 손대지 않으면): 시점이 좌우로 ±5° 천천히 흔들린다 (20 s 주기, 2 s 에 걸쳐 들어온다)
-  let idleFrom = 0
+  // 정차 화면의 '우와' (움직임 허용 · 정차일 때만, 모두 끝이 있다 → 끝나면 그리기 고리도 멈춘다):
+  //   (2026-11-15) 새 짐이 올라올 때 (상차 확인 · 새 운송장): 시점 다가오기 1.2 s + 짐 내려앉기 · 벨트 하나씩 (applyArrival)
+  //   → 다 내려앉고 300 ms 뒤 빛 띠 한 번 (1.4 s) → 끝. 빈 적재함 (상차 시트 뒤) 에서는 다가오기를 하지 않는다.
+  //   문제 벨트 숨쉬기는 문제가 생긴 때부터 3 번 숨쉬고 고른 빛으로 멈춘다.
+  //   (예전: 빈 적재함에서 다가오기 · 빛 띠 세 번 10.8 s = 불러오는 반짝임처럼 읽혔다. 끝없는 쉼 흔들림 ±5° 는 그 전에 뺐다)
+  const INTRO_MS = 1200
+  const SWEEP_N = 1
+  const SWEEP_MS = 1400
+  const SWEEP_EVERY = 3600
+  const SWEEP_FROM = -2.1
+  const SWEEP_TO = 2.3
+  const PULSE_MS = 1600
+  const PULSE_N = 3
+  const HINT_MS = 1500
+  let sweepT0 = -1
+  let sweepsDone = false
+  /** 느린 기기 (gauge 가 정한다): 이어 그리는 동안은 AO 를 뺀다 */
+  let slowDevice = false
   let lastFrameT = 0
   let prevRender = -1e9
-  const idleAxis = new THREE.Vector3(0, 1, 0)
-  const idleTmp = new THREE.Vector3()
+  const introAxis = new THREE.Vector3(0, 1, 0)
+  const introTmp = new THREE.Vector3()
+  const easeOutQuart = (k: number) => 1 - Math.pow(1 - k, 4)
+  /** 숨쉬기 세기 (0 ~ 1): 시작부터 n 번, 마지막 한 번은 잦아든다 */
+  const breath = (now: number, t0: number, period: number, n: number) => {
+    const t = now - t0
+    if (t0 < 0 || t >= period * n) return 0
+    return Math.min(1, (period * n - t) / period)
+  }
   function frame(now: number) {
-    raf = requestAnimationFrame(frame)
+    raf = 0
+    step(now)
+    // 그릴 것이 남았으면 (이어지는 움직임 · 손가락 뒤 관성 · 아직 못 그린 것) 다음 화면을 부른다. 없으면 여기서 멈춘다
     const moving = motionOk()
-    // 매 화면 그리는 때 (시점 바꿈 · 슬라이드 · 손가락). 숨쉬기 · 쉼 흔들림은 30 fps 로 일부러 줄이므로 속도 재기에서 뺀다
-    const fullRate = !!tween || !!slide || now - lastInput < 1200
+    const fx = moving && (!!intro || !!arrival || (sweepT0 >= 0 && !sweepsDone) || (hasPulse && breath(now, pulseT0, PULSE_MS, PULSE_N) > 0) || (hasHint && breath(now, hintT0, HINT_MS, PULSE_N) > 0))
+    // 손가락을 뗀 뒤 관성은 움직임이 허용될 때만 (주행 · 움직임 줄이기면 손가락이 멈추면 바로 멈춘다)
+    if (dirty || !!tween || !!slide || fx || (moving && now - lastInput < 1200) || !shown) kick()
+  }
+  function step(now: number) {
+    const moving = motionOk()
+    // 주행으로 바뀌면 (data-mode="drive") · 움직임 줄이기면 손가락 관성을 끄고 남은 관성을 버린다 (1.2 s 동안 미끄러지지 않게)
+    if (controls.enableDamping !== moving) {
+      controls.enableDamping = moving
+      if (!moving) {
+        const c = controls as unknown as { _sphericalDelta?: THREE.Spherical; _panOffset?: THREE.Vector3; _scale?: number }
+        c._sphericalDelta?.set(0, 0, 0)
+        c._panOffset?.set(0, 0, 0)
+        if (c._scale !== undefined) c._scale = 1
+      }
+    }
+    // 매 화면 그리는 때 (시점 바꿈 · 슬라이드 · 손가락 · 처음 다가오기). 숨쉬기 · 빛 지나감은 30 fps 로 일부러 줄이므로 속도 재기에서 뺀다
+    const fullRate = !!tween || !!slide || !!intro || !!arrival || (moving && now - lastInput < 1200)
+    // 처음 그림은 셰이더 엮기(compileAsync)를 1.5 s 까지, 진짜 하늘 HDR 을 0.8 s 까지 기다린다 (반사가 바뀌며 번쩍이지 않게).
+    //   움직임이 꺼져 있으면 HDR 은 기다리지 않는다 (페이드가 없으니 번쩍임도 없다)
+    if (!shown && !compiled && now - initT < 1500) return
+    if (!shown && moving && !envReady && now - initT < 800) return
+    if (intro && intro.t0 < 0) {
+      // 새 짐 다가오기: 이미 걸린 시점 바꿈은 버리고 제자리를 끝으로 둔다
+      intro.t0 = now
+      tween = null
+      controls.target.copy(goal.target)
+    }
+    if (arrival) {
+      if (arrival.t0 < 0) arrival.t0 = now
+      applyArrival(now)
+      dirty = true
+    }
+    if (intro) {
+      const k = moving ? Math.max(0, Math.min(1, (now - intro.t0) / (INTRO_MS * devSlow))) : 1
+      const e = easeOutQuart(k)
+      introTmp.copy(goal.pos).sub(goal.target).applyAxisAngle(introAxis, THREE.MathUtils.degToRad(-12) * (1 - e)).multiplyScalar(1 + 0.3 * (1 - e))
+      introTmp.y += 0.25 * (1 - e)
+      camera.position.copy(goal.target).add(introTmp)
+      controls.target.copy(goal.target)
+      if (k >= 1) intro = null
+      dirty = true
+    }
+    // 빛 지나감: 세 번 쓸고 끝 (주행 · 움직임 줄이기 · 위에서 보기 · 손가락이 닿으면 그만)
+    if (sweepT0 >= 0 && !sweepsDone) {
+      const t = now - sweepT0
+      const idx = Math.floor(t / SWEEP_EVERY)
+      const within = t - idx * SWEEP_EVERY
+      if (!moving || view !== '3d' || userMoved || idx >= SWEEP_N) {
+        sweepsDone = true
+        if (sweepU.uSweepAmt.value !== 0) dirty = true
+        sweepU.uSweepAmt.value = 0
+      } else if (t >= 0 && within < SWEEP_MS) {
+        const k = within / SWEEP_MS
+        sweepU.uSweepPos.value = SWEEP_FROM + (SWEEP_TO - SWEEP_FROM) * easeInOut(k)
+        sweepU.uSweepAmt.value = 1
+        if (now - lastFrameT > 33) dirty = true
+      } else if (sweepU.uSweepAmt.value !== 0) {
+        sweepU.uSweepAmt.value = 0
+        dirty = true
+      }
+    }
     if (tween) {
       const k = moving ? Math.max(0, Math.min(1, (now - tween.t0) / 600)) : 1
       const e = easeInOut(k)
@@ -3010,7 +3712,6 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       if (k >= 1) {
         tween = null
         userMoved = false
-        idleFrom = now
         // 위에서 보기는 다 온 뒤 직교로 바꿔 그린다
         if (view === 'top') active = ortho
       }
@@ -3024,29 +3725,31 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       // 짐 · 벨트가 움직이는 동안은 그림자도 따라간다
       shadowDirty = true
     }
-    // 30 fps 로 충분한 반복 움직임 (문제 벨트 숨쉬기 · 쉼 흔들림)
+    // 30 fps 로 충분한 반복 움직임 (문제 벨트 숨쉬기)
     const loopTick = moving && now - lastFrameT > 33
-    if (hasPulse && pulseMats.size) {
-      // 자체 빛 0.25 를 가운데로 0.12 ~ 0.4 (1.6 s). 멈추면 0.25 그대로
-      const v = moving ? 0.12 + 0.28 * (0.5 + 0.5 * Math.sin((now / 1600) * Math.PI * 2)) : PROBLEM_GLOW
-      for (const m of pulseMats) m.emissiveIntensity = v
-      if (loopTick) dirty = true
+    if (pulseMats.size) {
+      // 문제 벨트: 자체 빛 0.25 를 가운데로 0.1 ~ 0.6 (1.6 s 주기, 5 번, 마지막에 잦아든다). 주행 · 움직임 줄이기 · 다 숨쉰 뒤는 0.25 그대로
+      const a = hasPulse && moving ? breath(now, pulseT0, PULSE_MS, PULSE_N) : 0
+      const v = PROBLEM_GLOW + a * (a > 0 ? 0.25 * Math.sin(((now - pulseT0) / PULSE_MS) * Math.PI * 2) + 0.1 : 0)
+      let changed = false
+      for (const m of pulseMats)
+        if (m.emissiveIntensity !== v) {
+          m.emissiveIntensity = v
+          changed = true
+        }
+      if (changed && (loopTick || a === 0)) dirty = true
     }
-    // 더 걸 자리 띠: 정차 중 · 움직임 줄이기 꺼짐일 때만 1.5 s 주기로 자체 빛이 옅게 숨쉰다. 아니면 그대로
-    if (hasHint && hintMats.size) {
-      const o = moving ? HINT_GLOW + 0.15 * Math.sin((now / 1500) * Math.PI * 2) : HINT_GLOW
-      for (const m of hintMats) m.emissiveIntensity = o
-      if (moving && loopTick) dirty = true
-    }
-    const since = now - Math.max(idleFrom, lastInput) - 5000
-    if (interactive && !tween && !slide && !userMoved && moving && view === '3d' && since > 0) {
-      const ramp = Math.min(1, since / 2000)
-      {
-        const ang = THREE.MathUtils.degToRad(5) * ramp * Math.sin((since / 20000) * Math.PI * 2)
-        idleTmp.copy(goal.pos).sub(goal.target).applyAxisAngle(idleAxis, ang)
-        camera.position.copy(goal.target).add(idleTmp)
-        if (loopTick) dirty = true
-      }
+    // 더 걸 자리 띠: 1.5 s 주기로 자체 빛이 옅게 숨쉰다 (5 번). 아니면 그대로
+    if (hintMats.size) {
+      const a = hasHint && moving ? breath(now, hintT0, HINT_MS, PULSE_N) : 0
+      const o = HINT_GLOW + a * 0.18 * Math.sin(((now - hintT0) / HINT_MS) * Math.PI * 2)
+      let changed = false
+      for (const m of hintMats)
+        if (m.emissiveIntensity !== o) {
+          m.emissiveIntensity = o
+          changed = true
+        }
+      if (changed && (loopTick || a === 0)) dirty = true
     }
     if (dirty) lastFrameT = now
     if (active === camera && now - lastInput < 1200) controls.update()
@@ -3060,26 +3763,48 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     //   주광 · 테두리 빛의 반짝임도 위에서는 덮개 길이 전체에 고르게 서므로 한 단 어둡고 무르게
     M.gateCap.envMapIntensity = ENV_I * (flat ? 0.35 : 1)
     M.gate.envMapIntensity = GATE_ENV * (flat ? 0.7 : 1)
-    M.post.envMapIntensity = ENV_I * (flat ? 0.45 : 1)
-    M.swage.envMapIntensity = ENV_I * (flat ? 0.6 : 1)
+    M.post.envMapIntensity = POST_ENV * (flat ? 0.45 : 1)
+    M.swage.envMapIntensity = SWAGE_ENV * (flat ? 0.6 : 1)
+    // 바닥 원판의 빛 웅덩이는 비스듬히 볼 때의 반사라 위에서 보기에서는 옅게
+    M.floor.opacity = flat ? 0.55 : 1
     M.gateCap.color.setHex(flat ? 0x6a7076 : 0xc4cad0)
-    M.gateCap.roughness = flat ? 0.45 : 0.12
+    M.gateCap.roughness = flat ? 0.45 : 0.16
     M.post.color.setHex(flat ? 0x43484e : 0x50565d)
+    //   테이프 투명 막 · 바닥 강판도 천장 판을 정면으로 비춰 흰 띠 · 회색 판이 되므로 위에서는 낮춘다
+    //   (바로 위 주광의 반짝임도: 직교라 판 전체가 같은 각이 된다 → 위에서는 더 거칠게)
+    cartonMat.clearcoat = flat ? 0.12 : 0.9
+    cartonMat.roughness = flat ? 2.2 : 1
+    M.deckTop.envMapIntensity = flat ? 0.35 : 1
+    // (거칠기 지도 가운데 값 0.5 를 곱하므로 실제 거칠기는 이 값의 절반쯤: 3D 0.45 · 위에서 0.8)
+    M.deckTop.roughness = flat ? 1.6 : 0.9
     renderer.shadowMap.needsUpdate = shadowDirty
+    if (shadowDirty) shadowRenders++
     shadowDirty = false
-    renderer.render(scene, active)
+    // AO: 느린 기기(downgraded)는 이어 그리는 동안(시점 바꿈 · 손가락) 빼고, 멈춘 뒤 한 번 더 AO 와 함께 그린다
+    const ao = !(slowDevice && fullRate)
+    drawScene(ao)
+    if (!ao) dirty = true
     // 이어서 그리는 동안(시점 바꿈 · 슬라이드 · 손가락)의 그림 사이 간격 = 기기가 실제로 내는 속도
     if (fullRate && moving && now - prevRender < 200) gauge(now - prevRender)
     prevRender = now
     placeOverlay()
     if (!shown) {
-      // 처음 그린 뒤: 검정에서 480 ms 에 걸쳐 밝아진다 (움직임 허용일 때만)
+      // 처음 그린 뒤: 포스터(첫 그림 전 자리 그림)에서 480 ms 에 걸쳐 바뀐다 (움직임 허용일 때만, 아니면 바로).
+      //   꼬리표 층은 첫 자리 잡기(placeOverlay) 뒤에야 보인다 (그 전에는 끌어 선 점이 왼쪽 끝 (0, y) 에 떠 있었다)
       shown = true
+      tagLayer.style.visibility = ''
       const cv = renderer.domElement
       if (moving) {
         cv.style.transition = 'opacity 480ms cubic-bezier(0.2, 0, 0, 1)'
-        requestAnimationFrame(() => (cv.style.opacity = '1'))
-      } else cv.style.opacity = '1'
+        poster.style.transition = 'opacity 480ms cubic-bezier(0.2, 0, 0, 1)'
+        requestAnimationFrame(() => {
+          cv.style.opacity = '1'
+          poster.style.opacity = '0'
+        })
+      } else {
+        cv.style.opacity = '1'
+        poster.style.opacity = '0'
+      }
     }
   }
   /**
@@ -3097,6 +3822,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     const med = [...samples].sort((a, b) => a - b)[6]
     if (med <= 34) return
     downgraded = true
+    slowDevice = true
     key.shadow.mapSize.set(1024, 1024)
     key.shadow.map?.dispose()
     key.shadow.map = null
@@ -3108,11 +3834,24 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   ro.observe(host)
   readTheme()
   layout()
-  raf = requestAnimationFrame(frame)
+  kick()
+  // 짐 · 벨트가 들어온 뒤 (BedView 가 바로 update 를 부른다) 셰이더를 미리 엮는다. 다 되면 첫 그림
+  queueMicrotask(() => {
+    if (disposed) return
+    const done = () => {
+      compiled = true
+      invalidate()
+    }
+    try {
+      renderer.compileAsync(scene, camera).then(done, done)
+    } catch {
+      done()
+    }
+  })
   // 글꼴이 온 뒤 꼬리표 폭을 다시 잰다
   document.fonts?.ready.then(() => invalidate()).catch(() => {})
 
-  return {
+  const handle: BedHandle = {
     update,
     setView,
     setReserveTop(px: number) {
@@ -3120,18 +3859,47 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       reserveTop = px
       refit()
     },
+    setLoadId(id: string | null) {
+      if (id === loadId) return
+      loadId = id
+      // 새 운송장: 같은 짐 종류여도 새 짐이 올라오는 모습을 다시 (값 열쇠를 지워 벨트를 하나씩 다시 만든다)
+      if (input && !input.empty) {
+        const i = input
+        lastFullKey = ''
+        lastSceneKey = ''
+        update(i)
+      }
+    },
     dispose() {
       disposed = true
       cancelAnimationFrame(raf)
+      raf = 0
       ro.disconnect()
       themeMo.disconnect()
       uiMo.disconnect()
+      modeMo.disconnect()
+      reduceMq?.removeEventListener?.('change', invalidate)
+      if (post) {
+        post.rt.dispose()
+        post.gtao.dispose()
+        post.white.dispose()
+        post.mat.dispose()
+        post.quad.dispose()
+      }
+      env.dispose()
+      if (import.meta.env?.DEV) {
+        const w = window as unknown as { __bedScenes?: unknown[] }
+        w.__bedScenes = (w.__bedScenes ?? []).filter((h) => h !== dev)
+      }
       controls.dispose()
       for (const t of tagEls.values()) t.el.remove()
       for (const b of badgeEls.values()) b.el.remove()
       badgeEls.clear()
       frontEl.remove()
       svg.remove()
+      poster.remove()
+      tagLayer.style.visibility = ''
+      tagLayer.style.opacity = ''
       clearGroup(cargoBody)
       clearGroup(straps)
       clearGroup(sensors)
@@ -3140,4 +3908,20 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       renderer.domElement.remove()
     },
   }
+  // 개발 서버에서만: 화면 검사 도구가 장면 값을 바꾸고 그리기 횟수를 잴 수 있게 (window.__bedScenes)
+  const dev = {
+    update: (i: BedInput) => update(i),
+    lastInput: () => input,
+    dbg: () => dbg,
+    stats: () => ({ renders: renderCount, looping: raf !== 0, intro: !!intro, arrival: !!arrival, sweepsDone, sweepT0, pcss, post: !!post, calls: sceneCalls, envReady, hdrOk, compiled, shadowRenders }),
+    /** 조율용 (개발 서버만): 재료 · 빛 · 후처리 값을 바꿔 보고 invalidate() */
+    tune: { M, cartonMat, sweepU, post, scene, key, rim, warm, hemi, renderer, invalidate },
+    /** 조율용 (개발 서버만): 새 짐 올라오기 · 다가오기를 k 배 느리게 (느린 SwiftShader 화면 사진으로 한 장면씩 보려고) */
+    slow: (k: number) => (devSlow = Math.max(1, k)),
+  }
+  if (import.meta.env?.DEV) {
+    const w = window as unknown as { __bedScenes?: unknown[] }
+    w.__bedScenes = [...(w.__bedScenes ?? []), dev]
+  }
+  return handle
 }

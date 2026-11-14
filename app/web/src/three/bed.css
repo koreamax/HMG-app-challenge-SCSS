@@ -52,7 +52,23 @@
   mask-image: linear-gradient(180deg, transparent 0, #000 2%, #000 94%, transparent 100%), linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%);
   mask-composite: intersect;
 }
-.bv-layer { position: absolute; inset: 0; pointer-events: none; }
+/* 꼬리표 층: 새 짐이 올라오는 동안 (벨트를 그려 넣는 동안) 숨었다가 옅게 나타난다 (장면이 opacity 를 바꾼다) */
+.bv-layer { position: absolute; inset: 0; pointer-events: none; transition: opacity 220ms var(--ease-std, ease-out); }
+[data-mode='drive'] .bv-layer { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .bv-layer { transition: none; }
+}
+/* 첫 그림 전 자리 그림 (흐린 적재함 한 장, 장면 아래 가운데): 셰이더를 엮는 동안 빈 무대가 아니게. 첫 그림이 나오면 캔버스가 그 위로 밝아진다 */
+.bv-poster {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 그림 주소는 장면이 붙인다 (BASE_URL 을 따라야 해서): background-image */
+  background-position: 50% 62%;
+  background-size: auto 72%;
+  background-repeat: no-repeat;
+  opacity: 0.9;
+}
 .bv .tone-neutral { --c: var(--muted, #959ca4); }
 
 /* 이름표: 바탕 위 caption 글 (판 없음) */

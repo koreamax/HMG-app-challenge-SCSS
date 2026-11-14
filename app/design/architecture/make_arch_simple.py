@@ -83,9 +83,9 @@ arrow(app, eng)
 arrow(eng, out)
 arrow(out, drv)
 arrow(kit, app, dashed=True, exit=(1, .25), entry=(0, .8), pts=((X[1] - G // 2, Y2 + 35), (X[1] - G // 2, Y1 + 120)))
-arrow(app, nav, both=True, exit=(.6, 1), entry=(.6, 0))
-arrow(eng, ph, both=True)
-arrow(ph, cloud, dashed=True)
+arrow(app, nav, '경유지', both=True, exit=(.6, 1), entry=(.6, 0))
+arrow(eng, ph, '같은 판정', both=True)
+arrow(ph, cloud, '', dashed=True)
 
 text(X[3] + W + G + W - 280, 10, 300, 40, '실선 = 동작함   점선 = 계획 · 아이디어', size=14, color=MUTED, align='right')
 
