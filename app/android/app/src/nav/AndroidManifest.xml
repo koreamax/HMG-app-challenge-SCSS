@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- nav 버전: Pleos Connect (Android Automotive). 주행 요약 화면만 주행 중 사용(Distraction Optimization)을 선언한다 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <!-- AAOS 표준: 속도(사용자 동의), 기어, 조향, 주행 규제 -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <uses-permission android:name="android.car.permission.CAR_INFO" />
+    <uses-permission android:name="android.car.permission.READ_CAR_STEERING" />
+    <!-- Pleos Playground SDK -->
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />
+    <uses-permission android:name="pleos.car.permission.CAR_INFO" />
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <!-- Pleos 음성 · 위치 SDK: initialize() 가 이 권한을 확인한다 (없으면 SecurityException) -->
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />
+    <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" />
+    <!-- 안내음 뒤 5초 "네" 듣기 (Pleos SpeechToText) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <application>
+        <activity android:name=".MainActivity" tools:node="merge">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+        </activity>
+    </application>
+</manifest>

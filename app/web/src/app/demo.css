@@ -1,0 +1,182 @@
+/* 시연 무대 · 시연 패널 v5 "Obsidian Studio" (DESIGN_SPEC §10.5 시연 무대). 무대 바탕 = 앱 바탕과 같은 거의 검정, 글꼴은 Pretendard.
+   무대 밖 틀(.stg)은 .jj 밖이라 토큰 값을 직접 적는다: bg #08090A · 카드 #15181B · 우물 #1C1F23 · 버금 #262A2F · 틀 선 #1D2024 · 글 #F3F4F6 · 본문 #C5CAD0 · 보조 #959CA4.
+   흰 · 밝은 테두리 · 선 없음. 기기 틀은 선 없이 모서리 24 (면 차이만). 이름표는 caption 한 줄. */
+
+/* ── 무대 ── */
+.stg {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 56px 28px 28px;
+  background: #08090a;
+  font-family: 'Pretendard', sans-serif;
+  color: #f3f4f6;
+  -webkit-font-smoothing: antialiased;
+}
+.stg-row { display: flex; align-items: flex-end; gap: 32px; height: 100%; }
+.stg-col { flex: none; display: flex; flex-direction: column; }
+/* 이름표: caption 한 줄 (이름 600 + 보조 400 --muted) */
+.stg-label { height: 30px; flex: none; display: flex; align-items: baseline; gap: 8px; padding: 0 4px; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; }
+.stg-label b { font-weight: 600; color: #c5cad0; }
+.stg-label span { font-weight: 400; color: #959ca4; }
+/* 화면 틀: 둥근 24, 테두리 선 없음 (밝은 선 · 기기 사진 없음). 내비(밤 #050607)가 무대 바탕 #08090A 위에 면 차이로만 놓인다 */
+.stg-screen { position: relative; flex: none; overflow: hidden; border-radius: 24px; background: #050607; isolation: isolate; }
+.stg-screen.phone { border-radius: 36px; }
+.stg-twin { flex: none; min-height: 0; }
+/* 오른 단: 폰 (이름표와 함께 가운데) 위, 실사 칸 (단 폭 가득) 아래 */
+.stg-col.side { align-items: stretch; }
+.stg-col.side > .stg-label, .stg-col.side > .stg-screen.phone { align-self: center; }
+
+/* ── 서랍 손잡이: 오른쪽 위, 창 안쪽의 가로 알약 하나 [‹ 시연] (세로 글자 · 창 끝 잘림 없음) ── */
+.stg-handle {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 31;
+  height: 36px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 0 10px;
+  border: 0;
+  border-radius: 10px;
+  color: #c5cad0;
+  background: #1c1f23;
+  font: 600 13px/1 'Pretendard', sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: right 320ms cubic-bezier(0.05, 0.7, 0.1, 1), background-color 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.stg-handle svg { flex: none; }
+.stg-handle:hover { background: #262a2f; color: #f3f4f6; }
+.stg-handle:focus-visible { outline: 2px solid #959ca4; outline-offset: 2px; }
+.stg[data-panel='open'] { padding-right: calc(360px + 56px); }
+.stg[data-panel='open'] .stg-handle { right: 372px; }
+.stg-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: 360px;
+  overflow: hidden;
+  background: #15181b;
+  box-shadow: -24px 0 64px rgba(0, 0, 0, 0.6);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 200ms cubic-bezier(0.3, 0, 0.8, 0.15), visibility 0s linear 200ms;
+}
+.stg[data-panel='open'] .stg-drawer { transform: none; visibility: visible; transition: transform 320ms cubic-bezier(0.05, 0.7, 0.1, 1), visibility 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .stg-handle, .stg-drawer, .stg[data-panel='open'] .stg-drawer { transition: none; }
+}
+
+/* ── 시연 패널 (발표자용, 차 화면 밖): 밤 토큰 면, 고른 것 = 진한 면(--select), 누를 것만 파랑. 발표자만 보므로 글자는 작다 ── */
+.jj.dp {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--body);
+  background: var(--canvas);
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline-strong) transparent;
+  word-break: keep-all;
+}
+.jj.dp button { font: inherit; color: inherit; cursor: pointer; }
+.jj.dp .tnum { font-variant-numeric: tabular-nums; }
+.jj .dp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 16px 12px 20px; }
+.jj .dp-head b { display: block; font-size: 16px; font-weight: 700; color: var(--ink); }
+.jj .dp-head span { font-size: 12px; color: var(--muted); }
+.jj .dp-x { height: 32px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--surface-strong); }
+.jj .dp-x:active { background: var(--surface-press); }
+.jj .dp-state { margin: 0 12px 4px; padding: 14px 14px 12px; background: var(--surface-soft); border-radius: 14px; }
+.jj .dp-state-top { display: flex; align-items: center; gap: 10px; }
+.jj .dp-state-top b { font-size: 14px; font-weight: 700; color: var(--ink); }
+.jj .dp-state-top > span { margin-left: auto; font-size: 12px; color: var(--muted); }
+/* 경고등 작게 (상태 색 면 + 흑연 모양) */
+.jj .dp-lamp { --shape: var(--on-status); --mark: var(--c); flex: none; display: grid; place-items: center; width: 22px; height: 22px; background: var(--c); border-radius: 6px; }
+.jj .dp-lamp > svg { width: 62%; height: 62%; }
+.jj .dp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; margin-top: 10px; font-size: 12px; color: var(--body); font-variant-numeric: tabular-nums; }
+.jj .dp-line { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.jj .dp-line b { font-weight: 600; color: var(--ink); }
+.jj .dp-yes { padding: 8px 12px; }
+.jj .dp-sec { display: flex; flex-direction: column; gap: 6px; padding: 14px 12px 12px; }
+.jj .dp-sec + .dp-sec { padding-top: 18px; }
+.jj .dp-sec-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.jj .dp-btn {
+  min-height: 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--surface-strong);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+.jj .dp-btn.wide { width: 100%; align-items: flex-start; padding: 9px 12px; text-align: left; }
+.jj .dp-btn small { font-size: 11px; font-weight: 400; color: var(--muted); }
+.jj .dp-btn:active { background: var(--surface-press); }
+.jj .dp-btn[aria-pressed='true'] { color: var(--on-select); background: var(--select); }
+.jj .dp-btn[aria-pressed='true'] small { color: var(--on-select-muted); }
+.jj .dp-btn.accent { color: var(--on-primary); background: var(--primary); }
+.jj .dp-btn.accent small { color: rgba(243, 244, 246, 0.82); }
+.jj .dp-btn.accent:active { background: var(--primary-active); }
+.jj .dp-btn:disabled { color: var(--muted); background: var(--surface-soft); }
+.jj .dp-row2, .jj .dp-row3, .jj .dp-row4 { display: grid; gap: 6px; }
+.jj .dp-row2 { grid-template-columns: 1fr 1fr; }
+.jj .dp-row3 { grid-template-columns: repeat(3, 1fr); }
+.jj .dp-row4 { grid-template-columns: repeat(4, 1fr); align-items: center; }
+.jj .dp-lbl { font-size: 12px; color: var(--muted); }
+.jj .dp-range { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--body); }
+.jj .dp-range span { flex: none; width: 74px; }
+.jj .dp-range input { flex: 1; min-width: 0; accent-color: var(--select); }
+.jj .dp-range b { flex: none; width: 64px; text-align: right; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.jj .dp-select { height: 38px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink); background: var(--surface-strong); border: 0; border-radius: 10px; }
+.jj .dp-warn { font-size: 12px; color: var(--alert-t); }
+.jj .dp-note { font-size: 11px; color: var(--muted); }
+/* 처음에 칸 묶음이 차례로 올라온다 */
+.jj .dp-sec, .jj .dp-state { animation: jj-rise var(--dur-2) var(--ease-in) both; }
+.jj .dp-sec:nth-of-type(2) { animation-delay: calc(var(--stagger) * 1); }
+.jj .dp-sec:nth-of-type(3) { animation-delay: calc(var(--stagger) * 2); }
+.jj .dp-sec:nth-of-type(n + 4) { animation-delay: calc(var(--stagger) * 3); }
+.jj .dp-btn { transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
+
+/* ── 실사 디지털 트윈 칸 (내비 아래): 이름표 caption 한 줄 + 둥근 24 판 ── */
+.twin-tile { height: 100%; display: flex; flex-direction: column; font-family: 'Pretendard', sans-serif; }
+.twin-head { height: 30px; flex: none; display: flex; align-items: baseline; gap: 8px; padding: 0 4px; font-size: 13px; line-height: 20px; white-space: nowrap; overflow: hidden; }
+.twin-head > span:first-child { font-weight: 600; color: #c5cad0; }
+.twin-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 400; color: #959ca4; }
+/* 판 = 내비 폭 그대로 (오른쪽 빈 흑연 덩어리 없음). 판 크기를 container 로 잰다 */
+.twin-body { flex: 1; min-height: 0; display: flex; }
+.twin-media { position: relative; flex: 1 1 auto; min-width: 0; height: 100%; border-radius: 24px; overflow: hidden; background: #000; container-type: size; }
+/* 급제동 영상 (1280 x 720): 구운 글이 위 왼쪽 (높이 4 ~ 12.5 %) · 아래 왼쪽 (75.7 ~ 96 %) 에 있다.
+   글 없는 띠 13.5 ~ 74.5 % (높이 0.61, 가운데 44 %) 가 판을 늘 덮게 키우고, 그 띠 가운데를 판 가운데에 맞춘다.
+   넓은 판이면 폭에 맞추고 (띠 안쪽만 보인다), 높은 판이면 띠 높이 = 판 높이 */
+.twin-media video {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100cqw, calc(100cqh / 0.61 * 16 / 9));
+  height: auto;
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -44%);
+  background: #08090a;
+}
+/* 출발 전 사진 (적재함만 렌더, 글 없음): 판에 cover. 적재함이 가운데 오게 맞춘다 (운전석 · 바퀴 · 도로가 있는 옛 그림이어도 적재함만 남게) */
+.twin-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 40%; }
+.twin-media:not(.playing) video, .twin-media.playing .twin-still { visibility: hidden; }

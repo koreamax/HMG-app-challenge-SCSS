@@ -1,0 +1,217 @@
+{
+ "cases_total": 91,
+ "brake_cases": 67,
+ "formula_measured": {
+  "n": 67,
+  "moved": 32,
+  "tp": 32,
+  "fn": 0,
+  "fp": 3,
+  "tn": 32
+ },
+ "app_kitless": {
+  "n": 67,
+  "moved": 32,
+  "tp": 32,
+  "fn": 0,
+  "fp": 15,
+  "tn": 20
+ },
+ "est_over_peak_min": 1.088,
+ "est_over_peak_max": 1.245,
+ "peak_decel_max": 0.976,
+ "wall_max_shift_mm": 0.1,
+ "wall_max_decel": 0.961,
+ "rubber": [
+  {
+   "id": "rub_box300_g030",
+   "decel": 0.407,
+   "shift": 350.2
+  },
+  {
+   "id": "rub_box300_g060",
+   "decel": 0.83,
+   "shift": 350.1
+  },
+  {
+   "id": "trip_box300_rub_g045",
+   "decel": 0.62,
+   "shift": 350.3
+  },
+  {
+   "id": "trip_app300_rub_turnlost",
+   "decel": 0.428,
+   "shift": 47528.6
+  }
+ ],
+ "turns": [
+  {
+   "id": "turn_box300_b2_T1250_lat025",
+   "lat": 0.311,
+   "limit": 0.597,
+   "shift": 0.1
+  },
+  {
+   "id": "turn_box300_b2_T1250_lat040",
+   "lat": 0.497,
+   "limit": 0.597,
+   "shift": 0.2
+  },
+  {
+   "id": "turn_box300_b2_T1250_lat055",
+   "lat": 0.665,
+   "limit": 0.597,
+   "shift": 61.1
+  },
+  {
+   "id": "tallturn_app300_b2_T1250_lat030",
+   "lat": 0.344,
+   "limit": 0.633,
+   "shift": 0.3
+  },
+  {
+   "id": "tallturn_app300_b2_T1250_lat045",
+   "lat": 0.515,
+   "limit": 0.633,
+   "shift": 0.1
+  }
+ ],
+ "tips": [
+  {
+   "id": "tip_app300_b1_T300_lat035",
+   "lat": 0.407,
+   "tilt": 0.0,
+   "shift": 163.9,
+   "fell": false
+  },
+  {
+   "id": "tip_app300_rub_lat035",
+   "lat": 0.422,
+   "tilt": 179.9,
+   "shift": 15918.2,
+   "fell": true
+  },
+  {
+   "id": "tip_app300_b1_T300_lat050",
+   "lat": 0.643,
+   "tilt": 0.0,
+   "shift": 234.1,
+   "fell": false
+  },
+  {
+   "id": "tip_app300_rub_lat050",
+   "lat": 0.638,
+   "tilt": 179.4,
+   "shift": 38467.8,
+   "fell": true
+  }
+ ],
+ "bumps": [
+  {
+   "id": "bump_box300_b2_T1250_v20",
+   "min_vert_g": 0.127,
+   "shift": 8.2
+  },
+  {
+   "id": "bump_box300_b1_T600_v20",
+   "min_vert_g": 0.155,
+   "shift": 23.8
+  },
+  {
+   "id": "bump_box300_b2_T1250_v35",
+   "min_vert_g": 0.323,
+   "shift": 11.0
+  },
+  {
+   "id": "bump_box300_b1_T600_v35",
+   "min_vert_g": 0.362,
+   "shift": 24.3
+  }
+ ],
+ "trips": [
+  {
+   "id": "trip_box300_b2_T1250_g075",
+   "decel": 0.886,
+   "shift": 106.5,
+   "T": [
+    2534.0,
+    2534.0
+   ],
+   "minT": [
+    1245.0,
+    1245.0
+   ]
+  },
+  {
+   "id": "trip_box300_b4_T1250_g075",
+   "decel": 0.875,
+   "shift": 2.2,
+   "T": [
+    1257.0,
+    1256.0,
+    1255.0,
+    1257.0
+   ],
+   "minT": [
+    1241.0,
+    1243.0,
+    1243.0,
+    1242.0
+   ]
+  },
+  {
+   "id": "trip_box300_b2_T600_g045",
+   "decel": 0.597,
+   "shift": 88.1,
+   "T": [
+    1490.0,
+    1490.0
+   ],
+   "minT": [
+    596.0,
+    596.0
+   ]
+  },
+  {
+   "id": "trip_box300_rub_g045",
+   "decel": 0.62,
+   "shift": 350.3,
+   "T": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "minT": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "trip_box300_b2_T1250_release_g060",
+   "decel": 0.783,
+   "shift": 162.5,
+   "T": [
+    4187.0,
+    1252.0
+   ],
+   "minT": [
+    1245.0,
+    0.0
+   ]
+  },
+  {
+   "id": "trip_app300_rub_turnlost",
+   "decel": 0.428,
+   "shift": 47528.6,
+   "T": [
+    0.0,
+    0.0
+   ],
+   "minT": [
+    0.0,
+    0.0
+   ]
+  }
+ ]
+}

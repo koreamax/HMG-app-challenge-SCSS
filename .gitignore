@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+.gradle/
+local.properties
+*.log
+
+.idea/
+.DS_Store
+__pycache__/

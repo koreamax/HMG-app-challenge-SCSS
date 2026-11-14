@@ -1,0 +1,132 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+
+/* ── 글꼴 ──
+   모든 글자는 Pretendard Variable (OFL, 100~900) 하나. 앱에 든 사본만 쓴다 (인터넷 글꼴 요청 없음).
+   다른 한글 글꼴로 바뀌어 보이지 않게 글꼴 묶음은 'Pretendard' 와 맨 끝의 sans-serif 뿐이다 */
+@font-face { font-family: 'Pretendard'; font-weight: 100 900; font-display: swap; src: url('/fonts/PretendardVariable.woff2') format('woff2-variations'), url('/fonts/PretendardVariable.woff2') format('woff2'); }
+
+/* ── Hyundai Night Navy (Claude Design 시안 'Tokens') ──
+   현대자동차 웹의 현대 블루 · 액티브 블루 · 샌드 + 차량 인포테인먼트의 어두운 바탕. 상태 색은 초록 · 주황 · 빨강 · 회색 넷뿐 */
+@theme {
+  --font-sans: 'Pretendard', sans-serif;
+  --color-bg: #080c13;
+  --color-card: #0f1621;
+  --color-well: #0c121b;
+  --color-raise: #1e2a3b;
+  --color-ink: #eef2f7;
+  --color-ink2: #c9d2de;
+  --color-mute: #93a0b3;
+  --color-hblue: #002c5f;
+  --color-active: #00aad2;
+  --color-cyan: #2fc3e6;
+  --color-cyan2: #7fdbf0;
+  --color-sand: #e4dcd3;
+  --color-ok: #33d69f;
+  --color-warn: #ffa53b;
+  --color-bad: #ff5c5c;
+  --color-grey: #8a94a6;
+  --radius-card: 20px;
+}
+
+:root {
+  --ok: #33d69f;
+  --warn: #ffa53b;
+  --bad: #ff5c5c;
+  --grey: #8a94a6;
+  --c: #8a94a6;
+  --hair: rgba(255, 255, 255, 0.06);
+  --hair2: rgba(255, 255, 255, 0.1);
+  --hair3: rgba(255, 255, 255, 0.14);
+  color-scheme: dark;
+}
+
+html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #05080d; }
+body {
+  font-family: 'Pretendard', sans-serif;
+  color: #eef2f7;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* 차 화면 틀: 1440 x 810 을 기준으로 화면 비율에 맞춰 가상 화면을 만들고 통째로 키운다 */
+.car-frame { position: fixed; transform-origin: 0 0; overflow: hidden; background: #080c13; }
+
+/* 상태 색 카드 (시안의 은은한 세로 그라데이션 + 테두리) */
+.tone-card { border: 1px solid color-mix(in srgb, var(--c) 36%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 15%, transparent), color-mix(in srgb, var(--c) 4%, transparent)); }
+.tone-green { --c: var(--ok); }
+.tone-orange { --c: var(--warn); }
+.tone-red { --c: var(--bad); }
+.tone-grey { --c: var(--grey); }
+.tone-dot { background: var(--c); }
+.tone-text { color: var(--c); }
+
+/* 주행 화면: 색 하나 + 한 줄 (방사형 은은한 빛) */
+.drive-card { border: 1px solid color-mix(in srgb, var(--c) 36%, transparent); background: radial-gradient(120% 90% at 20% 30%, color-mix(in srgb, var(--c) 18%, transparent), color-mix(in srgb, var(--c) 4%, transparent) 60%, color-mix(in srgb, var(--c) 2%, transparent)); }
+
+/* 정차 중 움직임은 300 ms 이하. 주행 중에는 움직임 없음 */
+.is-driving *, .is-driving *::before, .is-driving *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* 상태 점의 물결 (정차 중에만) */
+@keyframes ripple { from { transform: scale(1); opacity: 0.55 } to { transform: scale(2.4); opacity: 0 } }
+.ripple::before, .ripple::after { content: ''; position: absolute; inset: 0; border-radius: 999px; background: var(--c); animation: ripple 2.4s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
+.ripple::after { animation-delay: 1.2s; }
+
+/* 듣는 중 막대 (정차 중에만 움직인다) */
+@keyframes wave { 0%, 100% { transform: scaleY(0.45) } 50% { transform: scaleY(1) } }
+.wave > span { transform-origin: 50% 100%; animation: wave 0.9s ease-in-out infinite; }
+.wave > span:nth-child(2) { animation-delay: 0.12s }
+.wave > span:nth-child(3) { animation-delay: 0.24s }
+.wave > span:nth-child(4) { animation-delay: 0.36s }
+.wave > span:nth-child(5) { animation-delay: 0.48s }
+
+/* 주 단추의 빛 테두리 (21st.dev 'shine border' 류를 가볍게) */
+@keyframes shine { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+.shine { position: relative; isolation: isolate; overflow: hidden; }
+.shine::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.38) 48%, transparent 66%);
+  background-size: 250% 100%;
+  animation: shine 3.2s ease-in-out infinite;
+  mix-blend-mode: soft-light;
+}
+
+/* 토스트 · 시트 */
+@keyframes rise { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+.rise { animation: rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+.fade { animation: fade 0.2s ease-out both; }
+
+/* 스크롤 (정차 화면 목록) */
+.scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.16) transparent; }
+.scroll::-webkit-scrollbar { width: 6px }
+.scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 6px }
+
+/* 깃허브 시험대 트윈을 이 테마 안에 넣을 때의 변수 (twin-page.css 이름표가 쓴다) */
+.rig-host {
+  --canvas: #0f1621; --surface-soft: #0c121b; --surface-card: #0f1621; --surface-strong: #1e2a3b; --surface-dark: #080c13;
+  --hairline: rgba(255, 255, 255, 0.08); --ink: #eef2f7; --body: #c9d2de; --muted: #93a0b3; --muted-soft: #93a0b3; --mute: #93a0b3;
+  --on-dark: #fff; --on-dark-soft: #c9d2de; --primary: #00aad2;
+  --ok: #33d69f; --warn: #ffd23f; --alert: #ffa53b; --bad: #ff5c5c; --none: #8a94a6;
+  position: absolute; inset: 0; overflow: hidden;
+}
+.rig-host .tw-tag { border-radius: 10px; overflow: hidden; }
+
+/* 데모 패널 (발표용, 차 화면 밖) */
+.demo-panel { font-size: 13px; color: #c9d2de; }
+
+/* 3D 이름표 (적재함 트윈) */
+.bed-tag { position: absolute; left: 0; top: 0; }
+.bed-pill { --c: #9fb4cc; display: inline-flex; align-items: center; gap: 8px; transform: translate(14px, -50%); padding: 8px 12px; border-radius: 10px; background: rgba(12, 18, 27, 0.88); border: 1px solid color-mix(in srgb, var(--c) 65%, transparent); color: #eef2f7; font-size: 15px; font-weight: 700; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.bed-pill i { width: 10px; height: 10px; border-radius: 99px; background: var(--c); }
+.bed-pill-plain { border-color: rgba(255, 255, 255, 0.35); font-size: 17px; }
+.bed-badge { --c: #ff5c5c; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 99px; background: var(--c); color: #fff; font-weight: 800; font-size: 16px; transform: translate(-50%, -50%); box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 28%, transparent); }
+.bed-pill-left { transform: translate(calc(-100% - 14px), -50%); }

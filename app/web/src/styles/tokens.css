@@ -1,0 +1,244 @@
+/* 적재적소 디자인 토큰 v5 "Obsidian Studio" (design/DESIGN_SPEC.md §10.4).
+   테마는 하나(어두운 쪽)다. .jj 기본값이 어두운 테마이고, 낮 · 밤(.jj[data-theme='night'])은 카드 밝기와 3D 노출을 한 단계만 바꾼다.
+   밝은 팔레트(Fog)는 지웠다. 흰색 · 밝은 회색 면은 어디에도 쓰지 않는다 (카드 · 시트 · 알림 · 토스트 · 창 테두리 · 무대 둘레 · 기기 틀).
+   밝은 것은 글자, 상태 색, 주 단추 하나, 3D 속 금속 반사뿐이다.
+
+   색의 역할은 셋뿐이다.
+     ① 상태 색 (--ok · --alert · --bad · --none): 경고등 면 · 3D 문제 벨트 · 막대 · 작은 점에만.
+     ② 파랑 (--primary): 화면에 하나, 주 단추 면에만.
+     ③ 나머지 전부: 거의 검정 바탕 위의 어두운 면 세 단계 (바탕 < 카드 < 우물 · 버금 단추). 선 대신 밝기 차이.
+   고른 것 = 한 단계 밝은 면 (--select) + 잉크 글. 밝은 알약 · 파랑 테두리 금지.
+   깊이는 면 차이로만: 카드 그림자 없음, 떠 있는 것 --e-1 하나, 시트 --e-2 하나. 판에는 빛 번짐 · 그라데이션 없음 (3D 무대만). 글꼴은 Pretendard 하나. */
+.jj {
+  /* ── 면 (Obsidian, 낮) ── */
+  --bg: #08090a; /* 앱 바탕 = 3D 무대 바탕 = 주행 화면 (Pleos 독 막대와 이어진다) */
+  --canvas: #15181b; /* 카드 · 시트 · 폰 고정 영역 · 탭 바 */
+  --surface-soft: #1c1f23; /* 카드 안 우물 · 줄 누름 · 알림 · 토스트 */
+  --surface-strong: #262a2f; /* 버금 단추 · 막대 길 · 중립 칩 */
+  --surface-press: #30353b; /* 버금 단추 누름 */
+  --hairline: #1f2327; /* 목록 줄 사이에만 (카드 · 무대 · 창 둘레에는 쓰지 않는다) */
+  --hairline-strong: #2c3137; /* 시간 줄 잇는 선 · 꺼진 켜기 길 (선이 아니라 면 차이 정도) */
+  /* 고른 것: 한 단계 밝은 면 + 잉크 글 (막대 보기 · 나눔 단추 · 탭 알약 · 목록 줄) */
+  --select: #30353b;
+  --on-select: #f3f4f6; /* 11.6:1 */
+  --on-select-muted: #c5cad0; /* 고른 면 위 보조 글은 --body (7.4:1). --muted 는 4.6 이라 쓰지 않는다 */
+  /* 옛 '반대 면' (토스트 · 사진 보기): 이제 모두 어두운 면 그대로 */
+  --inverse: #1c1f23;
+  --inverse-el: #262a2f;
+  --on-inverse: #f3f4f6;
+  --on-inverse-soft: #c5cad0;
+  /* 3D 스튜디오: 가운데 --stage-glow 에서 가장자리 --bg 로 사라지는 방사 그라데이션 (경계선 없음) */
+  --stage-glow: #191c20;
+  --stage-floor: #08090a;
+  --stage-top: var(--stage-glow); /* 옛 이름 */
+  --stage-shadow: 0.55; /* 3D 접지 그림자 진하기 (ShadowMaterial opacity) */
+  --stage-exposure: 1; /* 3D 노출 (밤 0.92) */
+  --shimmer: rgba(255, 255, 255, 0.05); /* 기다림 빛 띠 */
+
+  /* ── 글자 ── */
+  --ink: #f3f4f6; /* 판정 말 · 칸 값 · 제목 (카드 16.6:1) */
+  --body: #c5cad0; /* 본문 (카드 11.1:1) */
+  --muted: #959ca4; /* 보조 · 단위 · 기준값 (바탕 7.3 · 카드 6.6 · 버금 면 5.3) */
+  --muted-soft: #5c636b; /* 글자 금지: 체크 칸 테두리 · 꺾쇠 · 꺼진 기호 (3.0:1) */
+
+  /* ── 누를 것 (파랑, 화면에 하나) ── */
+  --primary: #1f5bd8; /* 글 5.9:1 */
+  --primary-active: #1a4db8;
+  --primary-pressed: var(--primary-active);
+  --primary-text: #8db6fa; /* 파랑 글: '바꾸기' 정도만 (카드 8.9:1) */
+  --on-primary: #f3f4f6;
+
+  /* ── 상태 면 (경고등 · 3D 문제 벨트 · 막대 · 점) ── */
+  --ok: #3fd59a;
+  --alert: #ff9640;
+  --bad: #ff5a52;
+  --none: #9aa1a9;
+  --on-status: #0b0c0e; /* 경고등 모양 (주황 9.0 · 빨강 6.4 · 초록 10.4:1) */
+  /* 상태 글자: 작은 칩 · 기록 줄에만 */
+  --ok-t: #3fd59a;
+  --alert-t: #ff9640;
+  --bad-t: #ff6a62; /* 카드 6.5 · 버금 면 5.3 */
+  --none-t: #a3aab2;
+  --bad-soft: #2a1b1c; /* 빨강 칸 하나만 */
+  --scrim: rgba(0, 0, 0, 0.72); /* 덮개: 밑 화면이 흐린 회색 그림이 아니라 뒤로 물러난 바탕으로 읽히게 */
+
+  /* ── 옛 이름 (v3 까지). 영역 담당이 새 이름으로 옮길 때까지 남긴다 ── */
+  --surface-card: var(--canvas);
+  --surface-dark: var(--canvas);
+  --surface-dark-el: var(--surface-strong);
+  --on-dark: var(--ink);
+  --on-dark-soft: var(--body);
+  --line-dark: rgba(255, 255, 255, 0.06);
+  --primary-soft: var(--surface-strong);
+  --primary-line: transparent;
+  --w-light: 400;
+
+  /* ── 글자 눈금 (§10.4). 내비는 설계 px: 실제 Pleos 창 1224 x 880 = 설계 1600 (x0.765), 세로 창 611 = 설계 800.
+       CSS px 값 x 1.307 = 설계 px. verdict 44 · title 26 · value 36 · heading 22 · body 20 · label 18 · caption 18 · drive 72 ── */
+  --fs-display: 58px; /* 판정 말 (44 CSS px) */
+  --fs-drive: 96px; /* 주행 한 줄 (73 CSS px, 지금 크기 유지) */
+  --fs-value: 47px; /* 칸 값 tabular (36) */
+  --fs-title: 34px; /* 할 일 문장 · 시트 · 화면 제목 (26) */
+  --fs-heading: 29px; /* 카드 머리 · 줄 제목 (22) */
+  --fs-body: 26px; /* 보조 문장 (20) */
+  --fs-label: 24px; /* 칸 이름 · 막대 글 · 칩 600 (18.4) */
+  --fs-caption: 24px; /* 기준값 · 메타 400 muted (18.4, 내비 바닥) */
+  --fs-row: var(--fs-heading);
+  --fs-button: var(--fs-heading);
+  /* 폰 눈금 (px, 390 x 844): verdict 26 · title 18 · value 28 · heading 16 · body 15 · label 13 · caption 13 */
+  --fsp-display: 26px;
+  --fsp-value: 28px;
+  --fsp-title: 18px;
+  --fsp-heading: 16px;
+  --fsp-body: 15px;
+  --fsp-label: 13px;
+  --fsp-caption: 13px;
+  --lh-tight: 1.15; /* 큰 글 */
+  --lh-body: 1.45; /* 본문 */
+  --unit: 0.45; /* 단위 = 값 x 0.45, --muted */
+  --tracking-display: -0.02em;
+
+  /* ── 간격 (8 px 눈금, 내비 설계 px: 창 가장자리 24 CSS = 32 · 영역 사이 16 CSS = 20 · 카드 안쪽 20 CSS = 26) ── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --sp-9: 96px;
+  --pad-card: 26px;
+  --edge: 32px;
+
+  /* ── 모서리 (내비 설계 px. 카드 20 · 단추 16 · 경고등 16 · 알림 16 · 시트 24 · 칩 10 CSS px. 폰은 phone.css 에서 줄인다) ── */
+  --r-xs: 13px; /* 칩 · 배지 */
+  --r-sm: 14px; /* 나눔 칸 · 우물 · 입력 */
+  --r-md: 21px; /* 단추 · 줄 · 알림 */
+  --r-lg: 26px; /* 카드 */
+  --r-xl: 32px; /* 시트 */
+  --r-stage: 0px; /* 3D 무대: 경계가 없으므로 모서리도 없다 */
+  --r-lamp: 21px; /* 경고등 */
+  --r-full: 999px; /* 켜기 · 듣는 중 알약 · 점 */
+  --icon: 32px; /* 아이콘 (폰 24) */
+
+  /* ── 높이: 카드 = 면 차이만 (그림자 없음) · 1 = 떠 있는 것(알림 · 토스트 · 자세히) · 2 = 시트 ── */
+  --e-0: none;
+  --e-1: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --e-2: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --e-knob: 0 1px 3px rgba(0, 0, 0, 0.5);
+
+  /* ── 움직임 (§8.2 값 그대로, 성격은 '기계처럼 정확하고 조용함') ── */
+  --dur-press: 90ms; /* 누름 */
+  --dur-1: 150ms; /* 작은 상태 (색 · 체크 · 켜기) */
+  --dur-2: 240ms; /* 알림 · 토스트 · 목록 한 줄 */
+  --dur-3: 320ms; /* 화면 · 시트 들어옴 */
+  --dur-out: 200ms; /* 화면 · 시트 나감 (들어옴보다 짧게) */
+  --dur-4: 480ms; /* 카드 펼침 · 상태 색 바뀜 */
+  --dur-count: 700ms; /* 숫자 세기 (정차 첫 진입 한 번) */
+  --stagger: 40ms; /* 목록 줄 사이 (8 줄까지) */
+  --ease-std: cubic-bezier(0.2, 0, 0, 1); /* 제자리에서 바뀜 */
+  --ease-in: cubic-bezier(0.05, 0.7, 0.1, 1); /* 들어옴 (emphasized decelerate) */
+  --ease-out: cubic-bezier(0.3, 0, 0.8, 0.15); /* 나감 (emphasized accelerate) */
+  --ease: var(--ease-std);
+  /* 용수철은 켜기 손잡이와 고른 면(나눔 단추)에만. 넘침 3 % (지원하지 않는 WebView 는 무시되고 --ease-std 로) */
+  --ease-spring: linear(0, 0.2 6%, 0.55 15%, 0.84 26%, 0.98 37%, 1.025 48%, 1.03 56%, 1.012 70%, 1);
+  --press-scale: 0.97;
+  --c: var(--none);
+  --ct: var(--none-t);
+
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--bg);
+  color-scheme: dark;
+}
+
+/* 밤: 같은 어두운 테마에서 면을 한 단계 낮추고 3D 노출을 줄인다 (글자 · 상태 색은 그대로) */
+.jj[data-theme='night'] {
+  --bg: #050607;
+  --canvas: #131518;
+  --surface-soft: #1a1d21;
+  --surface-strong: #24282d;
+  --surface-press: #2e3339;
+  --hairline: #1d2024;
+  --hairline-strong: #2a2f35;
+  --select: #2e3339;
+  --inverse: #1a1d21;
+  --inverse-el: #24282d;
+  --stage-glow: #15181c;
+  --stage-floor: #050607;
+  --stage-shadow: 0.6;
+  --stage-exposure: 0.92;
+  --bad-soft: #261819;
+  --scrim: rgba(0, 0, 0, 0.72);
+}
+
+/* 엔진 Tone 이름 그대로 */
+.jj .tone-green { --c: var(--ok); --ct: var(--ok-t); }
+.jj .tone-orange { --c: var(--alert); --ct: var(--alert-t); }
+.jj .tone-red { --c: var(--bad); --ct: var(--bad-t); }
+.jj .tone-grey { --c: var(--none); --ct: var(--none-t); }
+/* 상태 색이 바뀌면 480 ms 에 걸쳐 섞인다 (--c · --ct 를 색으로 등록해야 옮겨 갈 수 있다). 주행 중에는 아래 규칙이 막는다 */
+@property --c { syntax: '<color>'; inherits: true; initial-value: #9aa1a9; }
+@property --ct { syntax: '<color>'; inherits: true; initial-value: #a3aab2; }
+.jj :is(.tone-green, .tone-orange, .tone-red, .tone-grey) { transition: --c var(--dur-4) var(--ease-std), --ct var(--dur-4) var(--ease-std); }
+
+/* 바닥값: 모서리 · 그림자는 부품 규칙(.jj .x)이 토큰으로 준다 */
+.jj, .jj * { border-radius: 0; box-shadow: none; }
+.jj button, .jj input, .jj select, .jj textarea { font-family: inherit; }
+.jj .tnum { font-variant-numeric: tabular-nums; }
+.jj .light { font-weight: var(--w-light); }
+
+/* 주행 중에는 움직임 0 (앱 뿌리에 data-mode="drive") */
+.jj[data-mode='drive'] *, .jj[data-mode='drive'] *::before, .jj[data-mode='drive'] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .jj *, .jj *::before, .jj *::after { animation: none !important; transition: none !important; }
+}
+
+/* 정차 중 한 번만 나타남 */
+@keyframes jj-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.jj .jj-rise { animation: jj-rise var(--dur-2) var(--ease-in) both; }
+/* 정차 중 빨강 화면 테두리 숨쉬기 (반복은 이것과 듣는 중 알약, 3D 문제 벨트뿐) */
+@keyframes jj-breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+/* ── 움직임 묶음 (§8.2) ── */
+@keyframes jj-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes jj-fade-out { from { opacity: 1; } to { opacity: 0; } }
+/* 화면 바뀜: 같은 층은 fade through (살짝 커지며), 깊이 바뀜은 shared axis X */
+@keyframes jj-through { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: none; } }
+@keyframes jj-axis-in { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+@keyframes jj-axis-back { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
+@keyframes jj-sheet-right { from { opacity: 0.4; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+@keyframes jj-sheet-right-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(48px); } }
+@keyframes jj-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes jj-sheet-down { from { transform: none; } to { transform: translateY(100%); } }
+@keyframes jj-slide-left { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+/* 기계처럼: 튀지 않고 딱 한 번 살짝 (체크 · 완료 표시) */
+@keyframes jj-pop { 0% { transform: scale(0.92); } 100% { transform: scale(1); } }
+@keyframes jj-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+@keyframes jj-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@keyframes jj-spin { to { transform: rotate(360deg); } }
+@keyframes jj-level { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+.jj .jj-screen { animation: jj-through var(--dur-3) var(--ease-in) both; }
+.jj .jj-screen.axis { animation-name: jj-axis-in; }
+.jj .jj-screen.back { animation-name: jj-axis-back; }
+/* 목록 첫 보임: 줄마다 40 ms 늦게 (8 줄까지, 그 뒤는 한꺼번에) */
+.jj .jj-stagger > * { animation: jj-rise var(--dur-2) var(--ease-in) both; }
+.jj .jj-stagger > :nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+.jj .jj-stagger > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.jj .jj-stagger > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.jj .jj-stagger > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.jj .jj-stagger > :nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
+.jj .jj-stagger > :nth-child(7) { animation-delay: calc(var(--stagger) * 6); }
+.jj .jj-stagger > :nth-child(n + 8) { animation-delay: calc(var(--stagger) * 7); }
+/* 누름: 모든 단추가 살짝 눌리고 손을 떼면 바로 돌아온다 (용수철 없음) */
+.jj button { transition: transform var(--dur-1) var(--ease-std); }
+.jj button:active:not(:disabled) { transform: scale(var(--press-scale)); transition-duration: var(--dur-press); }
+/* 진짜로 기다릴 때만 (3D 장면을 읽어 오는 동안): 스튜디오 바닥 위 빛 띠 */
+.jj .jj-skeleton {
+  background: linear-gradient(100deg, transparent 30%, var(--shimmer) 50%, transparent 70%), radial-gradient(closest-side, var(--stage-glow), var(--bg));
+  background-size: 200% 100%, 100% 100%;
+  animation: jj-shimmer 1.4s linear infinite;
+}

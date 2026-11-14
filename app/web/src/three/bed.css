@@ -1,0 +1,166 @@
+/* 3D 무대 (design/DESIGN_SPEC.md §10.6 "Obsidian Studio"). 색은 앱 뿌리(.jj)의 변수: 낮 · 밤이 저절로 따라온다.
+   검은 스튜디오: 무대 칸 = --bg, 그 위에 --stage-glow → --bg 방사 그라데이션 (가장자리는 바탕과 같은 값 = 경계 · 사각형 없음).
+   캔버스는 투명하고 장면은 바닥 그림자만 그린다 (바닥 반사 없음). 흰색 · 밝은 회색 면, 테두리 없음.
+   꼬리표 = --surface-soft 어두운 알약 하나 (내비 40 · 폰 32, label 글 600 --ink) + 상태 점, 1.5px 상태 색 끌어 선 끝에 8px 점.
+   순서 배지 = --select 동그라미 + --ink 숫자. 이름표 · '앞' 은 --muted 글. 판에는 그림자 · 빛 번짐을 쓰지 않는다 (화려함은 3D 안에만). */
+.bv {
+  --bv-h: 40px;
+  --bv-fs: 18px;
+  --bv-pad: 14px;
+  --bv-gap: 10px;
+  --bv-dot: 10px;
+  --bv-inset: 20px;
+  --bv-badge: 40px;
+  --bv-badge-fs: 18px;
+  --bv-dir-fs: 18px;
+  /* 바닥 그림자 진하기 (ShadowMaterial opacity): 적재함 · 짐이 검은 바닥에 앉아 보이게 0.75 (밤 0.8) */
+  --stage-shadow: 0.75;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg, #08090a);
+  /* 3D 위 글자는 모두 Pretendard */
+  font-family: 'Pretendard', sans-serif;
+}
+/* 스튜디오 빛 웅덩이: 적재함 뒤 가운데가 한 단 밝고 (--stage-glow) 네 변으로 갈수록 --bg 와 같아진다 */
+.bv::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 62% 58% at 50% 54%, var(--stage-glow, #191c20) 0%, var(--stage-glow, #191c20) 18%, var(--bg, #08090a) 100%);
+}
+[data-theme='night'] .bv { --stage-shadow: 0.8; }
+.bv[data-size='sm'] {
+  --bv-h: 32px;
+  --bv-fs: 13px;
+  --bv-pad: 12px;
+  --bv-gap: 8px;
+  --bv-dot: 8px;
+  --bv-inset: 12px;
+  --bv-badge: 28px;
+  --bv-badge-fs: 13px;
+  --bv-dir-fs: 13px;
+}
+/* 장면 네 가장자리를 바탕으로 녹인다: 바닥 그림자 · 앞 보호 틀 끝이 무대 칸 끝에서 잘려 네모가 비치지 않게.
+   (적재함은 위아래 3 ~ 5 % · 양옆 10 % 넘는 여백 안에 있으므로 녹는 자리는 늘 빈 바닥이다. 위는 앞 보호 틀이 닿으므로 2 % 만) */
+.bv-host {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 2%, #000 94%, transparent 100%), linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(180deg, transparent 0, #000 2%, #000 94%, transparent 100%), linear-gradient(90deg, transparent 0, #000 4%, #000 96%, transparent 100%);
+  mask-composite: intersect;
+}
+.bv-layer { position: absolute; inset: 0; pointer-events: none; }
+.bv .tone-neutral { --c: var(--muted, #959ca4); }
+
+/* 이름표: 바탕 위 caption 글 (판 없음) */
+.bv-name {
+  position: absolute;
+  left: var(--bv-inset);
+  top: var(--bv-inset);
+  max-width: calc(100% - 2 * var(--bv-inset));
+  height: var(--bv-h);
+  display: flex;
+  align-items: center;
+  font-size: var(--bv-fs);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--muted, #959ca4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 끌어 선 · 끝 점 · 화살 (화면 좌표 SVG) */
+.bv-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.bv-lines > line { stroke: var(--c); stroke-width: 1.5; stroke-linecap: round; }
+/* 배지 끌어 선 (가는 선: 배지 -> 벨트 버클 위 8px 점) */
+.bv-lines > line.lead { stroke-width: 1.5; }
+.bv-lines > circle { fill: var(--c); stroke: var(--bg, #08090a); stroke-width: 2; paint-order: stroke; }
+.bv-arrow line { stroke: var(--c); stroke-width: 4; stroke-linecap: round; }
+.bv-arrow path { fill: var(--c); stroke: var(--c); stroke-width: 2; stroke-linejoin: round; }
+
+/* 꼬리표: 어두운 알약 (--surface-soft) + 상태 점 + 글 (label, --ink 600). 테두리 · 그림자 없음 */
+.bv-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--bv-gap);
+  height: var(--bv-h);
+  padding: 0 var(--bv-pad);
+  white-space: nowrap;
+  color: var(--ink, #f3f4f6);
+  background: var(--surface-soft, #1c1f23);
+  border-radius: calc(var(--bv-h) / 2);
+  will-change: transform;
+  opacity: 0;
+}
+.bv-tag .dot {
+  position: relative;
+  flex: none;
+  width: var(--bv-dot);
+  height: var(--bv-dot);
+  border-radius: 50%;
+  background: var(--c);
+}
+.bv-tag b {
+  font-size: var(--bv-fs);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* 빨강 꼬리표만, 처음 한 번 점이 퍼진다 (320 ms). 주행 중 · 움직임 줄이기면 없음 */
+.bv-tag.new .dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  animation: bv-ping var(--dur-3, 320ms) var(--ease-std, ease-out) 1 both;
+}
+[data-mode='drive'] .bv-tag.new .dot::after { animation: none; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .bv-tag.new .dot::after { animation: none; opacity: 0; }
+}
+@keyframes bv-ping { from { transform: scale(1); opacity: 1; } to { transform: scale(2.6); opacity: 0; } }
+
+/* 조일 순서 배지 (오른쪽 순서 목록과 같은 어두운 동그라미 + --ink 숫자) */
+.bv-badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--bv-badge);
+  height: var(--bv-badge);
+  display: grid;
+  place-items: center;
+  font-size: var(--bv-badge-fs);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink, #f3f4f6);
+  background: var(--select, #30353b);
+  border-radius: 50%;
+  font-variant-numeric: tabular-nums;
+  will-change: transform;
+  opacity: 0;
+}
+.bv-err { position: absolute; inset: 0; display: grid; place-items: center; font-size: var(--bv-fs); color: var(--muted, #959ca4); }
+
+/* '앞': 바닥 V 둘 뒤에 놓인 작은 글 (--muted). V 를 둘 자리가 없으면 앞 보호 틀 위 */
+.bv-dir {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: var(--bv-dir-fs);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted, #959ca4);
+  white-space: nowrap;
+  will-change: transform;
+  opacity: 0;
+  pointer-events: none;
+}

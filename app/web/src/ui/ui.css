@@ -1,0 +1,535 @@
+/* 공용 부품 v5 "Obsidian Studio" (design/DESIGN_SPEC.md §10). 색 · 모서리 · 높이 · 움직임은 tokens.css 의 .jj 변수 (테마 하나, 밤은 한 단계 어둡게).
+   크기는 앱 뿌리가 정하는 변수 (없으면 내비 1920 설계 값). 선택자는 모두 .jj 아래 (tokens 의 `.jj *` 바닥값보다 앞서게).
+
+   규칙
+   - 단추 셋: 주 = 파랑 면 (화면에 하나) · 버금 = --surface-strong 면 · 조용한 = 면 없음.
+   - 고른 것 = 한 단계 밝은 면 (--select) + 잉크 글. 파랑 테두리 · 밝은 알약 없음. 흰 · 밝은 회색 면 없음.
+   - 상태 색은 경고등 면 · 막대 · 작은 점에만. 값 · 판정 말은 잉크색. 상태 글자(--ct)는 작은 칩 · 기록 줄에만.
+   - 카드는 그림자 없이 면 차이로. 떠 있는 것(.ui-float) 하나, 시트(.ui-sheet) 하나.
+   - 용수철은 켜기 손잡이와 나눔 단추의 고른 면에만. */
+
+/* ── 글자 눈금 (내비 설계 px, 폰은 phone.css 의 .t-*). 단위는 값 × 0.45, --muted ── */
+.jj .ui-display { font-size: var(--fs-display); font-weight: 700; line-height: var(--lh-tight); letter-spacing: var(--tracking-display); color: var(--ink); }
+.jj .ui-title { font-size: var(--fs-title); font-weight: 700; line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--ink); }
+.jj .ui-heading { font-size: var(--fs-heading); font-weight: 600; line-height: 1.25; color: var(--ink); }
+.jj .ui-body { font-size: var(--fs-body); font-weight: 400; line-height: var(--lh-body); color: var(--body); }
+.jj .ui-label { font-size: var(--fs-label); font-weight: 600; line-height: 1.2; color: var(--body); }
+.jj .ui-caption { font-size: var(--fs-caption); font-weight: 400; line-height: 1.3; color: var(--muted); }
+/* 값 + 단위: <Num value unit /> 또는 <NumText text="0.88 g" /> → <span class="ui-num">0.88<small>g</small></span>.
+   모든 화면이 같은 숫자 모양: 값 700 잉크 tabular, 단위 = 값 × 0.45 · 400 · --muted. 글자 바닥(내비 caption 24 설계 px = 18.4 CSS px, 폰 13)보다 작아지지 않는다.
+   크기는 부모 글자 크기를 따른다 (우물 · 줄 · 칸 어디서나). */
+.jj { --num-floor: var(--fs-caption); }
+.jj.ph-root { --num-floor: var(--fsp-caption); }
+.jj .ui-num { display: inline-flex; align-items: baseline; gap: 0.14em; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.jj .ui-num > small { font-size: max(var(--num-floor, 24px), calc(1em * var(--unit))); font-weight: 400; letter-spacing: 0; color: var(--muted); }
+
+/* ── 면: 카드 (그림자 없음) · 떠 있는 것 · 시트 · 덮개 ── */
+.jj .ui-card { background: var(--canvas); border-radius: var(--r-lg); }
+.jj .ui-well { background: var(--surface-soft); border-radius: var(--r-sm); }
+.jj .ui-float { background: var(--surface-soft); border-radius: var(--r-lg); box-shadow: var(--e-1); }
+.jj .ui-sheet { background: var(--canvas); border-radius: var(--r-xl); box-shadow: var(--e-2); }
+.jj .ui-scrim { background: var(--scrim); }
+/* ── 토스트: 글만큼 폭인 알약 (가운데, ✓ 로 시작). 주 단추와 모양 · 폭 · 모서리가 달라 두 번째 단추로 읽히지 않는다.
+   단추 줄 위에 뜰 때는 16 px 띄운다 (.ui-toast-dock). 밤은 반대 면이 바탕과 붙지 않게 한 단계 밝은 흑연 ── */
+.jj .ui-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--toast-gap, 12px);
+  max-width: min(100%, var(--toast-max, 960px));
+  min-height: var(--toast-h, 64px);
+  margin-inline: auto;
+  padding: 10px var(--toast-pad, 32px) 10px calc(var(--toast-pad, 32px) - 6px);
+  font-size: var(--toast-fs, var(--fs-label, 24px));
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border-radius: var(--r-md);
+  box-shadow: var(--e-1);
+  pointer-events: none;
+  animation: jj-rise var(--dur-2) var(--ease-in) both;
+}
+.jj .ui-toast > svg { flex: none; width: var(--toast-icon, 28px); height: var(--toast-icon, 28px); color: var(--ok); }
+/* 긴 글은 자르지 않고 두 줄로 (알약은 그대로 둥근 끝) */
+.jj .ui-toast > span { min-width: 0; text-wrap: balance; }
+/* 폰 크기: 글 15 · ✓ 20 · 높이 44 · 옆 18 */
+.jj.ph-root .ui-toast { --toast-gap: 8px; --toast-h: 44px; --toast-pad: 18px; --toast-fs: 15px; --toast-icon: 20px; --toast-max: 358px; }
+/* 가운데 줄 (토스트를 담는 틀). 단추 줄 위면 아래로 16 px */
+.jj .ui-toast-dock { display: flex; justify-content: center; padding-bottom: 16px; pointer-events: none; }
+/* 카드 머리: 이름(heading) + 오른쪽 보조(caption) */
+.jj .ui-card-head { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
+.jj .ui-card-head > :first-child { font-size: var(--fs-heading); font-weight: 600; line-height: 1.25; color: var(--ink); }
+.jj .ui-card-head > :last-child:not(:first-child) { margin-left: auto; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── 넘치는 목록의 끝: 아래 24 px 가 바탕으로 사라진다 (줄이 반쯤 잘려 보이지 않게). 마지막 줄은 아래 여백(고정 판 높이 + 16) 위에 올라 끝까지 내리면 흐려지지 않는다.
+   고정 판이 목록 위에 겹치면 그 높이를 --fade-foot 에 준다 (예: 폰 아래 고정 판 88) ── */
+.jj .ui-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  padding-bottom: calc(var(--fade-foot, 0px) + 16px);
+  scroll-padding-bottom: calc(var(--fade-foot, 0px) + 16px);
+}
+
+/* ── 사진 넣는 곳 · 추가 칸: 점선 테두리 대신 우물 면 + 꽉 찬 24 px 아이콘 (선이 아니라 면으로) ── */
+.jj .ui-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  color: var(--ink);
+  background: var(--surface-soft);
+  border-radius: var(--r-lg);
+  text-align: center;
+  transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-drop:active { background: var(--surface-strong); }
+.jj .ui-drop > svg { flex: none; width: var(--drop-icon, 32px); height: var(--drop-icon, 32px); color: var(--ink); }
+.jj .ui-drop > b { font-weight: 600; color: var(--ink); }
+.jj .ui-drop > span { color: var(--muted); }
+.jj.ph-root .ui-drop { --drop-icon: 24px; }
+
+/* ── 아이콘: 한 벌, 24 격자 · 선 2 · 둥근 끝 · 채움 없음. 내비 32 · 폰 24 (--icon) ── */
+.jj svg.lucide, .jj svg.jj-glyph { stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.jj .ui-icon { flex: none; width: var(--icon); height: var(--icon); }
+
+/* ── 작은 상태 점 (10 px): 상태 색이 글 옆에 올 때는 이것 하나 ── */
+.jj .ui-dot { flex: none; display: inline-block; width: var(--dot, 10px); height: var(--dot, 10px); background: var(--c); border-radius: var(--r-full); }
+
+/* ── 경고등 Sign (telltale): 상태 색으로 꽉 찬 둥근 네모 + 흑연 모양. 깜박이지 않는다. 화면에서 가장 센 점은 이것 하나 ── */
+.jj .ui-sign {
+  --shape: var(--on-status);
+  --mark: var(--c);
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--sign, 96px);
+  height: var(--sign, 96px);
+  background: var(--c);
+  border-radius: var(--r-lamp);
+  transition: background-color var(--dur-4) var(--ease-std);
+}
+.jj .ui-sign > svg { width: var(--sign-shape, 58%); height: var(--sign-shape, 58%); }
+.jj .ui-shape .sh { fill: var(--shape); }
+.jj .ui-shape .sh-ring { fill: none; stroke: var(--shape); }
+.jj .ui-shape .mk { fill: var(--mark); }
+.jj .ui-shape .mk-line { fill: none; stroke: var(--mark); }
+
+/* ── 상태 칩: 중립 면 + 상태 점 + 상태 글자 (작게). 꽉 찬 상태 면(.solid)은 '사건' 하나만 ── */
+.jj .ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--h-chip, 40px);
+  padding: 0 14px 0 12px;
+  font-size: var(--fs-label, 24px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ct);
+  background: var(--surface-soft);
+  border-radius: var(--r-xs);
+}
+.jj .ui-chip::before { content: ''; flex: none; width: 10px; height: 10px; background: var(--c); border-radius: var(--r-full); }
+.jj .ui-chip.neutral { color: var(--body); }
+.jj .ui-chip.neutral::before { display: none; }
+.jj .ui-chip.solid { color: var(--on-status); background: var(--c); }
+.jj .ui-chip.solid::before { display: none; }
+/* 막대 · 우물 위에서는 한 단계 진한 면 */
+.jj :is(.ui-well, .ui-tile.tone-red) .ui-chip:not(.solid) { background: var(--surface-strong); }
+
+/* ── 단추: 주 = 파랑 면 흰 글 (그림자 · 빛 없음), 버금 = 중립 면, 조용한 = 면 없음 ── */
+.jj .ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 80px;
+  min-height: 80px;
+  height: var(--h-btn, 88px);
+  padding: 0 32px;
+  border: 0;
+  border-radius: var(--r-md);
+  font-size: var(--fs-button, 30px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-btn svg { flex: none; width: var(--icon, 32px); height: var(--icon, 32px); }
+.jj .ui-btn.primary { color: var(--on-primary); background: var(--primary); font-weight: 700; }
+.jj .ui-btn.primary:active { background: var(--primary-active); }
+.jj .ui-btn.secondary { color: var(--ink); background: var(--surface-strong); }
+.jj .ui-btn.secondary:active { background: var(--surface-press); }
+.jj .ui-btn.quiet { color: var(--ink); background: transparent; }
+.jj .ui-btn.quiet:active { background: var(--surface-soft); }
+/* 고른 상태를 갖는 단추 (예: 보기 바꾸기) */
+.jj .ui-btn[aria-pressed='true'] { color: var(--on-select); background: var(--select); }
+.jj .ui-btn:disabled, .jj .ui-btn.secondary:disabled, .jj .ui-btn.primary:disabled { color: var(--muted); background: var(--surface-soft); }
+.jj .ui-btn.quiet:disabled { background: transparent; }
+
+/* ── 칸 단추 (막대): 아이콘 + 이름. 고른 칸 = 진한 면 ── */
+.jj .ui-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: var(--h-cell, 88px);
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--r-md);
+  color: var(--muted);
+  background: transparent;
+  font-size: var(--fs-label, 24px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-cell svg { flex: none; width: var(--icon, 32px); height: var(--icon, 32px); }
+.jj .ui-cell:active { background: var(--surface-strong); }
+.jj .ui-cell[aria-pressed='true'] { color: var(--on-select); background: var(--select); }
+.jj .ui-cell:disabled { color: var(--muted); }
+
+/* ── 나눔 단추: 길 안에 칸, 고른 칸으로 진한 면이 미끄러져 온다 (용수철). --n 칸 수 · --i 고른 칸 ── */
+.jj .ui-seg {
+  --seg-pad: 6px;
+  --seg-gap: 4px;
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--seg-gap);
+  height: var(--h-seg, 88px);
+  padding: var(--seg-pad);
+  background: var(--surface-strong);
+  border-radius: var(--r-md);
+  isolation: isolate;
+}
+.jj .ui-seg.vertical { grid-auto-flow: row; grid-auto-rows: minmax(0, 1fr); grid-auto-columns: auto; height: auto; }
+.jj .ui-seg > button {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  background: transparent;
+  font-size: var(--fs-label, 24px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color var(--dur-1) var(--ease-std), background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-seg.vertical > button { flex-direction: column; }
+.jj .ui-seg > button > * { position: relative; z-index: 2; }
+.jj .ui-seg > button svg { flex: none; width: var(--icon, 32px); height: var(--icon, 32px); }
+.jj .ui-seg > button:active:not([aria-pressed='true']) { background: var(--surface-press); }
+.jj .ui-seg > button[aria-pressed='true'] { color: var(--on-select); font-weight: 700; background: transparent; }
+.jj .ui-seg > button:disabled { color: var(--muted); }
+.jj .ui-seg > .ind {
+  position: absolute;
+  z-index: 1;
+  left: var(--seg-pad);
+  top: var(--seg-pad);
+  width: calc((100% - 2 * var(--seg-pad) - (var(--n) - 1) * var(--seg-gap)) / var(--n));
+  height: calc(100% - 2 * var(--seg-pad));
+  background: var(--select);
+  border-radius: var(--r-sm);
+  transform: translateX(calc(var(--i) * (100% + var(--seg-gap))));
+  pointer-events: none;
+  transition: transform var(--dur-3) var(--ease-spring);
+}
+.jj .ui-seg.vertical > .ind {
+  width: calc(100% - 2 * var(--seg-pad));
+  height: calc((100% - 2 * var(--seg-pad) - (var(--n) - 1) * var(--seg-gap)) / var(--n));
+  transform: translateY(calc(var(--i) * (100% + var(--seg-gap))));
+}
+/* 무대 · 사진 위 (어두운 알약): 길 = 우물 면, 고른 칸 = --select + 잉크 (밝은 알약 없음) */
+.jj .ui-seg.dark { background: var(--surface-soft); }
+.jj .ui-seg.dark > button { color: var(--muted); }
+.jj .ui-seg.dark > button[aria-pressed='true'] { color: var(--on-select); }
+.jj .ui-seg.dark > .ind { background: var(--select); }
+
+/* ── 증감: 우물 안에 단추 둘 (그림자 없음) ── */
+.jj .ui-stepper { display: flex; align-items: stretch; gap: 6px; height: var(--h-btn, 88px); padding: 6px; background: var(--surface-soft); border-radius: var(--r-md); }
+.jj .ui-stepper > button {
+  flex: none;
+  width: var(--h-btn, 88px);
+  min-width: 80px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  background: var(--surface-strong);
+  transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-stepper > button svg { width: var(--icon, 32px); height: var(--icon, 32px); }
+.jj .ui-stepper > button:active { background: var(--surface-press); }
+.jj .ui-stepper > button:disabled { color: var(--muted-soft); background: transparent; }
+.jj .ui-stepper .val {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  align-self: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.jj .ui-stepper .val b { font-size: var(--fs-value, 64px); font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.jj .ui-stepper .val small { font-size: max(var(--fs-caption, 24px), calc(var(--fs-value, 64px) * var(--unit))); font-weight: 400; color: var(--muted); }
+
+/* ── 켜기: 둥근 길 + 둥근 손잡이 (용수철). 폰 켜기 (.ph-toggle) 와 같은 짜임.
+   꺼짐 = 버금 면 길 + 회색 손잡이 (--muted) 왼쪽. 켜짐 = 밝은 길 (--body) + 어두운 손잡이 (--canvas) 오른쪽.
+   자리와 밝기 둘 다로 구분 (흰 손잡이 없음) ── */
+.jj .ui-toggle {
+  position: relative;
+  flex: none;
+  width: 88px;
+  height: 48px;
+  background: var(--surface-press);
+  border-radius: var(--r-full);
+  transition: background-color var(--dur-2) var(--ease-std);
+}
+.jj .ui-toggle::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 40px;
+  height: 40px;
+  background: var(--muted);
+  border-radius: var(--r-full);
+  box-shadow: var(--e-knob);
+  transition: transform var(--dur-3) var(--ease-spring), background-color var(--dur-2) var(--ease-std);
+}
+.jj .ui-toggle.on { background: var(--body); }
+.jj .ui-toggle.on::after { transform: translateX(40px); background: var(--canvas); box-shadow: none; }
+.jj .ui-trow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  min-height: var(--h-row, 104px);
+  padding: 16px var(--row-pad, 28px);
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  background-color: transparent;
+  transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-trow:active { background-color: var(--surface-soft); }
+.jj .ui-trow .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.jj .ui-trow .tx b { font-size: var(--fs-row, 30px); font-weight: 600; line-height: 1.25; }
+.jj .ui-trow .tx span { font-size: var(--fs-caption, 24px); font-weight: 400; line-height: 1.3; color: var(--muted); }
+
+.jj :is(.ui-trow, .ui-lrow, .ui-check, .ui-tile) { --press-scale: 0.985; }
+
+/* 카드 안 줄 사이 선: 줄 안쪽 여백만큼 들여 그린다 (전체 폭 선을 쓰지 않는다) */
+.jj .ui-trow + .ui-trow, .jj .ui-lrow + .ui-lrow, .jj .ui-check + .ui-check {
+  background-image: linear-gradient(var(--hairline), var(--hairline));
+  background-repeat: no-repeat;
+  background-size: calc(100% - 2 * var(--row-pad, 28px)) 1px;
+  background-position: var(--row-pad, 28px) 0;
+}
+
+/* ── 칸 Tile: 계기 카드 (테두리 없음). 이름(label · muted) → 값(value · 잉크) → 막대 4 CSS px(상태 색 + 기준 눈금) → 기준(caption).
+   상태는 막대 색과 오른쪽 위 8 CSS px 점만 전한다 (값을 상태 색으로 칠하지 않는다). 빨강 칸만 --bad-soft 면 (내비는 이것도 쓰지 않는다). ── */
+.jj .ui-tile {
+  --c: var(--muted-soft);
+  --ct: var(--ink);
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 0;
+  padding: var(--tile-pad, 16px 24px);
+  border: 0;
+  border-radius: var(--r-lg);
+  text-align: left;
+  color: var(--ink);
+  background: var(--canvas);
+  overflow: hidden;
+  transition: background-color var(--dur-4) var(--ease-std), box-shadow var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+/* 칸이 단추(<button>)일 때도 머리 줄 · 막대가 칸 폭을 다 쓰게 (일부 WebView 는 단추 안 세로 flex 의 자식을 늘리지 않는다) */
+.jj .ui-tile > * { align-self: stretch; width: 100%; box-sizing: border-box; }
+.jj .ui-tile.tone-green { --c: var(--ok); --ct: var(--ok-t); }
+.jj .ui-tile.tone-orange { --c: var(--alert); --ct: var(--alert-t); }
+.jj .ui-tile.tone-red { --c: var(--bad); --ct: var(--bad-t); background: var(--bad-soft); }
+.jj .ui-tile.tone-grey { --c: var(--none); --ct: var(--none-t); }
+.jj button.ui-tile:active { background: var(--surface-soft); }
+.jj button.ui-tile.tone-red:active { background: var(--bad-soft); }
+/* 고른 칸: 한 단계 밝은 면 (--select). 테두리 없음 */
+.jj .ui-tile.sel, .jj .ui-tile.tone-red.sel { background: var(--select); }
+.jj .ui-tile.sel .ui-tile-bar { background: var(--canvas); }
+.jj .ui-tile-head { position: relative; display: flex; align-items: center; gap: 10px; min-width: 0; height: 32px; color: var(--muted); }
+/* 점 자리는 하나: 칸 오른쪽 위, 이름 줄 가운데 (어느 배치에서도 값 · 기준값 옆으로 오지 않는다) */
+.jj .ui-tile-head.has-dot { padding-right: calc(var(--tile-dot, 8px) + 16px); }
+/* 칸 이름 앞 아이콘은 쓰지 않는다 (글로 충분) */
+.jj .ui-tile-head > svg { display: none; }
+.jj .ui-tile-head .nm { min-width: 0; font-size: var(--fs-label, 24px); font-weight: 600; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jj .ui-tile-head .cap {
+  margin-left: auto;
+  min-width: 0;
+  font-size: var(--fs-caption, 24px);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.jj .ui-tile-head .ui-chip { margin-left: auto; height: 32px; padding: 0 10px; }
+.jj .ui-tile-head .dot { position: absolute; right: 0; top: 50%; width: var(--tile-dot, 8px); height: var(--tile-dot, 8px); margin-top: calc(var(--tile-dot, 8px) / -2); background: var(--c); border-radius: var(--r-full); }
+.jj .ui-tile-val { display: flex; align-items: baseline; gap: 8px; min-width: 0; white-space: nowrap; }
+/* 말 값: 제목 크기 700, 숫자 값 줄과 같은 높이 안에서 가운데 (옆 칸 막대 · 기준 줄과 높이가 맞는다) */
+.jj .ui-tile-val:is(.word, :has(> b > .txt)) { align-items: center; min-height: var(--fs-value, 64px); }
+.jj .ui-tile-val.word b { font-size: var(--fs-title, 40px); line-height: var(--lh-tight); letter-spacing: -0.01em; font-variant-numeric: normal; }
+.jj .ui-tile-val b { min-width: 0; font-size: var(--fs-value, 64px); font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
+.jj .ui-tile-val small { font-size: max(var(--fs-caption, 24px), calc(var(--fs-value, 64px) * var(--unit))); font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.jj .ui-tile-val .txt { font-size: var(--fs-title, 40px); line-height: var(--lh-tight); letter-spacing: -0.01em; }
+.jj .ui-tile-sub { display: none; font-size: var(--fs-caption, 24px); font-weight: 400; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.jj[data-size='lg'] .ui-tile-sub { display: block; line-height: 1.25; }
+.jj[data-size='lg'] .ui-tile { padding: var(--tile-pad, 18px 24px); }
+.jj .ui-tile-foot { margin-top: 8px; font-size: var(--fs-caption, 24px); font-weight: 400; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.jj .ui-tile-bar { position: relative; flex: none; height: var(--tile-bar, 5px); margin-top: 8px; background: var(--surface-strong); border-radius: 3px; }
+.jj .ui-tile.tone-red .ui-tile-bar { background: color-mix(in srgb, var(--bad) 22%, var(--bad-soft)); }
+.jj .ui-tile-bar.none { display: none; }
+.jj .ui-tile-bar i { position: absolute; inset: 0; background: var(--c); border-radius: 3px; transform-origin: left center; transition: transform var(--dur-count) var(--ease-std); animation: ui-bar-in var(--dur-count) var(--ease-std) both; }
+@keyframes ui-bar-in { from { transform: scaleX(0); } }
+/* 기준 눈금: 막대보다 키 큰 짧은 잉크 선 */
+.jj .ui-tile-bar s { position: absolute; top: calc(50% - var(--tile-tick-h, 16px) / 2); width: var(--tile-tick-w, 3px); height: var(--tile-tick-h, 16px); margin-left: calc(var(--tile-tick-w, 3px) / -2); background: var(--ink); border-radius: 1.5px; }
+
+/* ── 목록 줄: [상태 점][제목 + 보조][값 · 꺾쇠]. 고른 줄 = 진한 면 ── */
+.jj .ui-lrow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  min-height: var(--h-row, 104px);
+  padding: 12px var(--row-pad, 28px);
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  background-color: transparent;
+  transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj button.ui-lrow:active { background-color: var(--surface-soft); }
+.jj .ui-lrow.sel { --muted: var(--on-select-muted); --body: var(--on-select); color: var(--on-select); background-color: var(--select); background-image: none; border-radius: var(--r-md); }
+.jj .ui-lrow.sel + .ui-lrow { background-image: none; }
+.jj .ui-lrow .sq { flex: none; width: 12px; height: 12px; background: var(--c); border-radius: var(--r-full); }
+.jj .ui-lrow .sq.neutral { background: var(--muted-soft); }
+.jj .ui-lrow .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.jj .ui-lrow .tx b { font-size: var(--fs-row, 30px); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.jj .ui-lrow .tx span { font-size: var(--fs-caption, 24px); font-weight: 400; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jj .ui-lrow .val { flex: none; display: flex; align-items: center; gap: 8px; font-size: var(--fs-label, 24px); font-weight: 600; color: var(--body); font-variant-numeric: tabular-nums; }
+.jj .ui-lrow .val svg { width: 28px; height: 28px; color: var(--muted); }
+
+/* ── 할 일 줄: [순서 배지][제목 + 보조][체크 칸]. 줄 전체가 누르는 곳.
+   순서 배지 = 진한 동그라미 + 숫자 (3D 의 같은 번호 배지와 같은 모양). 체크 = 진한 면 ── */
+.jj .ui-check {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  min-height: var(--h-row, 104px);
+  padding: 12px var(--row-pad, 28px);
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  background-color: transparent;
+  transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std);
+}
+.jj .ui-check:active { background-color: var(--surface-soft); }
+.jj .ui-check .badge {
+  flex: none;
+  width: var(--badge, 40px);
+  height: var(--badge, 40px);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-label, 24px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--on-select);
+  background: var(--select);
+  border-radius: var(--r-full);
+  font-variant-numeric: tabular-nums;
+}
+.jj .ui-check .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.jj .ui-check .tx b { font-size: var(--fs-row, 30px); font-weight: 600; line-height: 1.25; transition: color var(--dur-2) var(--ease-std); }
+.jj .ui-check .tx span { font-size: var(--fs-caption, 24px); font-weight: 400; line-height: 1.3; color: var(--muted); }
+.jj .ui-check .box {
+  flex: none;
+  width: var(--check, 44px);
+  height: var(--check, 44px);
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--muted-soft);
+  border-radius: var(--r-sm);
+  color: var(--on-select);
+  background: transparent;
+  transition: background-color var(--dur-1) var(--ease-std), border-color var(--dur-1) var(--ease-std);
+}
+.jj .ui-check .box svg { width: 70%; height: 70%; stroke-dasharray: 24; stroke-dashoffset: 0; }
+.jj .ui-check[aria-checked='true'] .box { background: var(--select); border-color: var(--select); animation: jj-pop var(--dur-2) var(--ease-std); }
+.jj .ui-check[aria-checked='true'] .box svg { animation: jj-draw var(--dur-3) var(--ease-in) 60ms both; }
+.jj .ui-check[aria-checked='true'] .badge { color: var(--muted); background: var(--surface-strong); }
+.jj .ui-check[aria-checked='true'] .tx b { color: var(--muted); }
+/* 자동 체크 줄: 흐린 꽉 찬 칸 (아직 = 우물 면 + 흐린 ✓, 찼음 = 진한 면) + 아래 '자동' (점선 없음) */
+.jj .ui-check .auto { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.jj .ui-check .auto small { font-size: var(--fs-caption, 24px); font-weight: 400; line-height: 1; color: var(--muted); }
+.jj .ui-check.is-auto .box { border: 0; color: var(--muted-soft); background: var(--surface-strong); }
+.jj .ui-check.is-auto[aria-checked='true'] .box { color: var(--on-select); background: var(--select); }
+.jj .ui-check.is-auto[aria-checked='true'] .tx b { color: var(--ink); }
+
+/* ── 듣는 중 알약: 진한 면 (파랑은 주 단추 몫). 정차 중에만 목소리 막대가 조용히 오르내린다 ── */
+.jj .ui-listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  height: var(--h-pill, 88px);
+  padding: 0 44px 0 36px;
+  color: var(--ink);
+  background: var(--surface-strong);
+  border-radius: var(--r-full);
+  box-shadow: var(--e-1);
+  font-size: var(--fs-pill, 36px);
+  line-height: 1;
+  white-space: nowrap;
+}
+.jj .ui-listen svg { flex: none; width: 40px; height: 40px; }
+.jj .ui-listen b { font-weight: 700; }
+.jj .ui-listen span { font-weight: 400; opacity: 0.78; }
+.jj .ui-listen { animation: jj-rise var(--dur-2) var(--ease-in) both; }
+.jj .ui-level { display: inline-flex; align-items: center; gap: 5px; height: 36px; }
+.jj .ui-level i { display: block; width: 6px; height: 100%; border-radius: 3px; background: currentColor; opacity: 0.9; transform: scaleY(0.55); animation: jj-level 1.2s var(--ease-std) infinite; }
+.jj .ui-level i:nth-child(2) { animation-delay: -0.3s; transform: scaleY(0.85); }
+.jj .ui-level i:nth-child(3) { animation-delay: -0.6s; transform: scaleY(0.7); }
+.jj .ui-level i:nth-child(4) { animation-delay: -0.9s; transform: scaleY(0.45); }
+
+/* ── 숫자 세기 (CountUp): 값 글자가 흔들리지 않게 고정 폭 숫자 ── */
+.jj .ui-count { font-variant-numeric: tabular-nums; }
+
+/* ── 다 됐어요 (Celebrate): 진한 동그라미에 ✓ 가 그려지고 한 줄. 1.8 s 뒤 사라진다. 정차 · 폰에서만 ── */
+.jj .ui-done-layer { position: absolute; inset: 0; z-index: 55; display: grid; place-items: center; pointer-events: none; background: color-mix(in srgb, var(--bg) 55%, transparent); animation: ui-done-life 1800ms linear both; }
+/* 1.8 s: 0.24 s 들어옴 · 머묾 · 끝 0.2 s 나감 */
+@keyframes ui-done-life { 0% { opacity: 0; } 13% { opacity: 1; } 89% { opacity: 1; } 100% { opacity: 0; } }
+.jj .ui-done { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 40px 56px 36px; background: var(--surface-soft); border-radius: var(--r-xl); box-shadow: var(--e-2); animation: ui-done-in var(--dur-3) var(--ease-in) both; }
+.jj .ui-done-mark { width: var(--done, 112px); height: var(--done, 112px); display: grid; place-items: center; color: var(--on-status); background: var(--ok); border-radius: var(--r-full); animation: jj-pop var(--dur-3) var(--ease-std) 80ms both; }
+.jj .ui-done-mark svg { width: 56%; height: 56%; stroke-dasharray: 24; animation: jj-draw var(--dur-4) var(--ease-in) 200ms both; }
+.jj .ui-done b { font-size: var(--fs-title, 40px); font-weight: 700; line-height: 1.25; color: var(--ink); white-space: nowrap; }
+@keyframes ui-done-in { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
