@@ -23,7 +23,7 @@ export type ExportCtx = {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 
-const TONE_HEX = { green: '#3fd59a', orange: '#ff9640', red: '#ff5a52', grey: '#9aa1a9' } as const
+const TONE_HEX = { green: '#58c49a', orange: '#d9a13f', red: '#d5503f', grey: '#9aa1a9' } as const
 
 /** 경고등 (화면의 Sign 과 같은 그림, v4): 상태 색 둥근 네모 + 흑연 모양. 초록 ● ✓ · 주황 ▲ ! · 빨강 ◆ ! · 회색 ○ – */
 function signSvg(tone: keyof typeof TONE_HEX) {

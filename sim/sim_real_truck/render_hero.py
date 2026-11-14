@@ -2,11 +2,14 @@
 
   python sim_real_truck/render_hero.py stills      # results/hero/*.png (1920x1080)
   python sim_real_truck/render_hero.py video       # results/hero/frames_brake/*.png + 자막 (1280x720, 30 fps)
+  HERO_BED=1 HERO_VERT=1 python sim_real_truck/render_hero.py video    # 세로 9:16 (1080x1920), 고정 카메라: results/hero_bed/frames_brake_vert/
+  HERO_BED=1 HERO_VERT=1 python sim_real_truck/render_hero.py stills   # results/hero_bed/vert_before.png, vert_after.png
   python sim_real_truck/render_hero.py lost        # 고무바 냉장고가 램프 회전에서 넘어지는 장면 (따로 돌린다: 렌더 뒤 조향이 안 먹는다)
 
 짐 · 벨트 · 차의 움직임은 render_shots.py 와 같은 TruckSim (240 Hz). 상자 인쇄 · 운송장은 make_textures.py 가 만든 가짜 값이다.
 """
 import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -17,7 +20,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 KIT = Path(sys.executable).parent / 'Lib/site-packages/isaacsim/apps/isaac_twin_light.kit'
 MODE = sys.argv[1] if len(sys.argv) > 1 else 'stills'
-W, H = (1280, 720) if MODE in ('video', 'lostvideo') else (1920, 1080)
+VERT = os.environ.get('HERO_VERT') == '1'     # 세로 숏폼 (9:16). 가로 출력은 그대로 둔다
+W, H = (1080, 1920) if VERT else (1280, 720) if MODE in ('video', 'lostvideo') else (1920, 1080)
 app = SimulationApp({'headless': True, 'renderer': 'PathTracing', 'width': W, 'height': H}, experience=str(KIT))
 import carb  # noqa: E402
 import omni.kit.app  # noqa: E402
@@ -401,6 +405,50 @@ def hero_views(sim):
     }
 
 
+def vert_cam(P, R):
+    """세로 화면 카메라: 뒤 왼쪽 낮은 자리에서 적재함을 따라 앞을 본다. 차체 기준 (눈 x,y,z, 보는 곳 x,y,z, 초점거리)"""
+    v = [float(x) for x in os.environ.get('HERO_VERT_CAM', VERT_CAM).split(',')]
+    return P + R @ np.array(v[:3]), P + R @ np.array(v[3:6]), v[6]
+
+
+VERT_CAM = '-4.27,0.69,1.55,-1.0,0.1,0.2,86'      # 상자 + 벨트가 화면 높이의 절반쯤. 더 당기면 9:16 폭에서 벨트 · 상자가 잘린다
+
+
+def vert_stills():
+    """세로 정지 사진 2장: 급제동 뒤(먼저, 렌더 전에 차를 움직인다) -> 새 장면에서 출발 전"""
+    box = CARGO['box']
+    case = Case('box', 300., box['size'], box['mu'], 2, 1250., 0.35)
+    cam = Cam()
+    sim, look = scene(case, 'box')
+    sim.launch(50 / 3.6)
+    for _ in range(int(1.0 / DT)):
+        sim.step()
+    brake_to_stop(sim)
+    win = max(1, int(round(0.1 / DT)))
+    ax = np.convolve(-np.array(sim.rec.ax), np.ones(win) / win, 'valid')
+    print('BRAKE peak %.2f g (0.1 s mean) shift %.1f cm on_bed %s' % (ax.max(), sim.rec.dx[-1] * 100, sim.rec.on_bed[-1]), flush=True)
+    look.sync_cargo()
+    look.straps_mesh()
+    look.ghost_box()
+    P, R, CP, CR = sim.poses()
+    eye, tgt, focal = vert_cam(P, R)
+    cam.shot(sim.stage, eye, tgt, focal, 0.)
+    t0 = time.time()
+    Image.fromarray(cam.grab(6)).save(OUT / (os.environ.get('HERO_VERT_NAME', 'vert') + '_after.png'))
+    print('HERO vert_after %.1f s' % (time.time() - t0), flush=True)
+    if os.environ.get('HERO_VERT_ONLY') == 'after':
+        return
+    cam = Cam()
+    sim, look = scene(case, 'box')
+    look.ghost_box()
+    P, R, CP, CR = sim.poses()
+    eye, tgt, focal = vert_cam(P, R)
+    cam.shot(sim.stage, eye, tgt, focal, 0.)
+    t0 = time.time()
+    Image.fromarray(cam.grab(6)).save(OUT / (os.environ.get('HERO_VERT_NAME', 'vert') + '_before.png'))
+    print('HERO vert_before %.1f s' % (time.time() - t0), flush=True)
+
+
 def stills():
     """급제동 장면을 먼저 (렌더 전에 차를 움직여야 한다), 그다음 새 장면에서 출발 전"""
     box = CARGO['box']
@@ -484,7 +532,7 @@ def video():
     box = CARGO['box']
     cam = Cam()
     sim, look = scene(Case('box', 300., box['size'], box['mu'], 2, 1250., 0.35), 'box')
-    fdir = OUT / 'frames_brake'
+    fdir = OUT / ('frames_brake_vert' if VERT else 'frames_brake')
     fdir.mkdir(exist_ok=True)
     for f in fdir.glob('*'):
         f.unlink()
@@ -510,6 +558,10 @@ def video():
     sim.sim.stop()
     vp = sim.stage.GetPrimAtPath(sim.vp)
     vals = []
+    if VERT:
+        look.ghost_box()                 # 출발 때 자리 (하늘색 선): 짐이 앞으로 밀린 만큼이 보인다
+    R0 = rec[0]['poses'][1]
+    t_frame = time.time()
     for n, r in enumerate(rec):
         P, R, CP, CR = r['poses']
         set_matrix(vp, R, P)
@@ -517,7 +569,10 @@ def video():
         look.sync_cargo(r['poses'])
         look.straps_mesh(r['poses'])
         orbit = min(1., r['v']['t'] / 7.)
-        if BED:   # 적재함만: 가까이서 천천히 돌아 들어가는 카메라 (차와 같이 움직인다)
+        if VERT:  # 세로: 카메라는 차를 따라가되 흔들리지 않는다 (처음 차체 방향 그대로, 줌 · 회전 없음)
+            eye, tgt, focal = vert_cam(P, R0)
+            cam.shot(sim.stage, eye, tgt, focal, 0.)
+        elif BED:   # 적재함만: 가까이서 천천히 돌아 들어가는 카메라 (차와 같이 움직인다)
             eye = P + R @ np.array([-5.6 + 1.2 * orbit, 3.6 - 1.4 * orbit, 1.9 - 0.35 * orbit])
             cam.shot(sim.stage, eye, P + R @ np.array([-1.1, 0., -0.05]), 36., 0.)
         else:
@@ -527,10 +582,10 @@ def video():
         Image.fromarray(img).save(fdir / f'f{n:04d}.png')
         vals.append(r['v'])
         if n % 15 == 0:
-            print('FRAME', n, 'kmh %.0f' % r['v']['kmh'], 'x %.1f' % P[0], flush=True)
+            print('FRAME', n, 'kmh %.0f' % r['v']['kmh'], 'x %.1f' % P[0], '%.1f s/frame' % ((time.time() - t_frame) / (n + 1)), flush=True)
             (fdir / 'values.json').write_text(json.dumps(vals), encoding='utf-8')
     (fdir / 'values.json').write_text(json.dumps(vals), encoding='utf-8')
-    print('VIDEO_FRAMES', len(vals), flush=True)
+    print('VIDEO_FRAMES', len(vals), '%.1f s/frame' % ((time.time() - t_frame) / max(1, len(vals))), flush=True)
 
 
 def lost():
@@ -630,7 +685,7 @@ def case():
 if __name__ == '__main__':
     t0 = time.time()
     try:
-        {'stills': stills, 'video': video, 'lost': lost, 'case': case}[MODE]()
+        {'stills': vert_stills if VERT else stills, 'video': video, 'lost': lost, 'case': case}[MODE]()
     except Exception as error:  # noqa: BLE001
         import traceback
         traceback.print_exc()

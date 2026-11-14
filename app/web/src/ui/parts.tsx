@@ -130,34 +130,37 @@ export function Toast({ children, dock = false, icon = true }: { children: React
 export type TileTone = Tone | 'neutral'
 export const toneClass = (t: TileTone) => (t === 'neutral' ? 'neutral' : 'tone-' + t)
 
-/** 상태 모양 넷: 초록 ● ✓ · 주황 ▲ ! · 빨강 ◆ ! · 회색 ○ –. 면 = --shape, 안 표시 = --mark */
+/**
+ * 상태 표지 넷 (2026-11-15 "조용한 경고"): 꽉 찬 면 없이 가는 선 하나로 그린 계기판 표지.
+ * 초록 ○ ✓ · 주황 △ ! · 빨강 ◇ ! · 회색 ○ –. 선 · 점 색 = --shape (기본은 상태 색 --c), 선 굵기 = --sw (100 격자 단위).
+ */
 export function SignShape({ tone, className = '' }: { tone: Tone; className?: string }) {
   return (
     <svg className={'ui-shape ' + className} viewBox="0 0 100 100" aria-hidden="true">
       {tone === 'green' && (
         <>
-          <circle className="sh" cx="50" cy="50" r="47" />
-          <path className="mk-line" d="M27 51 43.5 67.5 74 36" strokeWidth="11" strokeLinecap="square" strokeLinejoin="miter" />
+          <circle className="ln" cx="50" cy="50" r="43" />
+          <path className="ln" d="M31 51.5 44.5 65 70 37.5" />
         </>
       )}
       {tone === 'orange' && (
         <>
-          <path className="sh" d="M50 4 97 92H3Z" />
-          <rect className="mk" x="44" y="35" width="12" height="31" />
-          <rect className="mk" x="44" y="72" width="12" height="11" />
+          <path className="ln" d="M50 11 93 87H7Z" />
+          <path className="ln" d="M50 40V62" />
+          <circle className="pt" cx="50" cy="74" r="1" />
         </>
       )}
       {tone === 'red' && (
         <>
-          <path className="sh" d="M50 2 98 50 50 98 2 50Z" />
-          <rect className="mk" x="44" y="24" width="12" height="34" />
-          <rect className="mk" x="44" y="64" width="12" height="12" />
+          <path className="ln" d="M50 5 95 50 50 95 5 50Z" />
+          <path className="ln" d="M50 30V56" />
+          <circle className="pt" cx="50" cy="69" r="1" />
         </>
       )}
       {tone === 'grey' && (
         <>
-          <circle className="sh-ring" cx="50" cy="50" r="42" strokeWidth="10" />
-          <rect className="sh" x="28" y="44" width="44" height="12" />
+          <circle className="ln" cx="50" cy="50" r="43" />
+          <path className="ln" d="M34 50H66" />
         </>
       )}
     </svg>
@@ -166,7 +169,7 @@ export function SignShape({ tone, className = '' }: { tone: Tone; className?: st
 
 const TONE_WORD: Record<Tone, string> = { green: '초록', orange: '주황', red: '빨강', grey: '회색' }
 
-/** 경고등: 상태 색으로 꽉 찬 둥근 네모 + 흑연 모양 (계기판 경고등처럼). 깜박이지 않는다 */
+/** 경고 표지: 면 없이 상태 색 가는 선 표지 하나 (계기판 경고등처럼). 깜박이지 않는다 */
 export function Sign({ tone, className = '' }: { tone: Tone; className?: string }) {
   return (
     <div className={`ui-sign tone-${tone} ${className}`} role="img" aria-label={TONE_WORD[tone] + ' 표지'}>

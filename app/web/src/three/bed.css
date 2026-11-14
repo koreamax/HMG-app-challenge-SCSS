@@ -1,11 +1,12 @@
 /* 3D 무대 (design/DESIGN_SPEC.md §10.6 "Obsidian Studio"). 색은 앱 뿌리(.jj)의 변수: 낮 · 밤이 저절로 따라온다.
    검은 스튜디오: 무대 칸 = --bg, 그 위에 --stage-glow → --bg 방사 그라데이션 (가장자리는 바탕과 같은 값 = 경계 · 사각형 없음).
    캔버스는 투명하고 장면은 바닥 그림자만 그린다 (바닥 반사 없음). 흰색 · 밝은 회색 면, 테두리 없음.
-   꼬리표 = --surface-soft 어두운 알약 하나 (내비 40 · 폰 32, label 글 600 --ink) + 상태 점, 1.5px 상태 색 끌어 선 끝에 8px 점.
-   순서 배지 = --select 동그라미 + --ink 숫자. 이름표 · '앞' 은 --muted 글. 판에는 그림자 · 빛 번짐을 쓰지 않는다 (화려함은 3D 안에만). */
+   꼬리표 = 어두운 반투명 칩 + 가는 테두리 (내비 36 · 폰 28, label 글 500 --ink) + 짧은 상태 색 막대, 1.25px 상태 색 끌어 선 끝에 6px 고리.
+   순서 배지 = 어두운 동그라미 + 가는 테두리 + --ink 숫자. 이름표 · '앞' 은 --muted 글. 판에는 그림자 · 빛 번짐을 쓰지 않는다 (화려함은 3D 안에만). */
 .bv {
-  --bv-h: 40px;
-  --bv-fs: 18px;
+  --bv-h: 36px;
+  --bv-r: 8px;
+  --bv-fs: 17px;
   --bv-pad: 14px;
   --bv-gap: 10px;
   --bv-dot: 10px;
@@ -32,9 +33,10 @@
 }
 [data-theme='night'] .bv { --stage-shadow: 0.8; }
 .bv[data-size='sm'] {
-  --bv-h: 32px;
+  --bv-h: 28px;
+  --bv-r: 7px;
   --bv-fs: 13px;
-  --bv-pad: 12px;
+  --bv-pad: 11px;
   --bv-gap: 8px;
   --bv-dot: 8px;
   --bv-inset: 12px;
@@ -90,16 +92,18 @@
   pointer-events: none;
 }
 
-/* 끌어 선 · 끝 점 · 화살 (화면 좌표 SVG) */
+/* 끌어 선 · 끝 점 · 치수선 (화면 좌표 SVG). 2026-11-15 "조용한 경고": 도면 주석처럼 가는 선 (1.25 px), 끝 점은 속이 빈 작은 고리,
+   밀린 방향은 굵은 화살 대신 가는 치수선 + 열린 꺾쇠 머리 (채움 없음) */
 .bv-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.bv-lines > line { stroke: var(--c); stroke-width: 1.5; stroke-linecap: round; }
-/* 배지 끌어 선 (가는 선: 배지 -> 벨트 버클 위 8px 점) */
-.bv-lines > line.lead { stroke-width: 1.5; }
-.bv-lines > circle { fill: var(--c); stroke: var(--bg, #08090a); stroke-width: 2; paint-order: stroke; }
-.bv-arrow line { stroke: var(--c); stroke-width: 4; stroke-linecap: round; }
-.bv-arrow path { fill: var(--c); stroke: var(--c); stroke-width: 2; stroke-linejoin: round; }
+.bv-lines > line { stroke: var(--c); stroke-width: 1.25; stroke-linecap: round; opacity: 0.85; }
+.bv-lines > line.lead { stroke-width: 1.25; }
+.bv-lines > circle { fill: var(--bg, #08090a); stroke: var(--c); stroke-width: 1.5; }
+.bv-lines > circle.at-arrow { display: none; }
+.bv-arrow line { stroke: var(--c); stroke-width: 1.75; stroke-linecap: round; }
+.bv-arrow path { fill: none; stroke: var(--c); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 
-/* 꼬리표: 어두운 알약 (--surface-soft) + 상태 점 + 글 (label, --ink 600). 테두리 · 그림자 없음 */
+/* 꼬리표: 어두운 반투명 칩 + 가는 테두리 (1 px, 잉크 12 %) + 왼쪽 짧은 상태 색 막대 + 글 (label, --ink 500).
+   알약 · 큰 상태 점 · 퍼지는 고리는 쓰지 않는다 (고급 컨피규레이터의 치수 주석처럼 조용하게) */
 .bv-tag {
   position: absolute;
   left: 0;
@@ -108,44 +112,32 @@
   align-items: center;
   gap: var(--bv-gap);
   height: var(--bv-h);
-  padding: 0 var(--bv-pad);
+  padding: 0 var(--bv-pad) 0 calc(var(--bv-pad) - 2px);
   white-space: nowrap;
   color: var(--ink, #f3f4f6);
-  background: var(--surface-soft, #1c1f23);
-  border-radius: calc(var(--bv-h) / 2);
+  background: color-mix(in srgb, var(--bg, #08090a) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink, #f3f4f6) 13%, transparent);
+  border-radius: var(--bv-r, 8px);
   will-change: transform;
   opacity: 0;
 }
 .bv-tag .dot {
   position: relative;
   flex: none;
-  width: var(--bv-dot);
-  height: var(--bv-dot);
-  border-radius: 50%;
+  width: 3px;
+  height: 44%;
+  border-radius: 1.5px;
   background: var(--c);
 }
 .bv-tag b {
   font-size: var(--bv-fs);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
+  letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
 }
-/* 빨강 꼬리표만, 처음 한 번 점이 퍼진다 (320 ms). 주행 중 · 움직임 줄이기면 없음 */
-.bv-tag.new .dot::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid var(--c);
-  animation: bv-ping var(--dur-3, 320ms) var(--ease-std, ease-out) 1 both;
-}
-[data-mode='drive'] .bv-tag.new .dot::after { animation: none; opacity: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .bv-tag.new .dot::after { animation: none; opacity: 0; }
-}
-@keyframes bv-ping { from { transform: scale(1); opacity: 1; } to { transform: scale(2.6); opacity: 0; } }
 
-/* 조일 순서 배지 (오른쪽 순서 목록과 같은 어두운 동그라미 + --ink 숫자) */
+/* 조일 순서 배지: 어두운 반투명 동그라미 + 가는 테두리 + --ink 숫자 (꼬리표와 같은 주석 모양) */
 .bv-badge {
   position: absolute;
   left: 0;
@@ -155,10 +147,11 @@
   display: grid;
   place-items: center;
   font-size: var(--bv-badge-fs);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   color: var(--ink, #f3f4f6);
-  background: var(--select, #30353b);
+  background: color-mix(in srgb, var(--bg, #08090a) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink, #f3f4f6) 28%, transparent);
   border-radius: 50%;
   font-variant-numeric: tabular-nums;
   will-change: transform;

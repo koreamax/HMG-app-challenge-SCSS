@@ -107,11 +107,13 @@
 .jj .ph-btn2:disabled { color: var(--muted); background: var(--surface-soft); cursor: default; }
 .jj .ph-btn2.bad { color: var(--bad-t); background: var(--surface-strong); }
 
-/* ── 경고등: 상태 색으로 꽉 찬 둥근 네모 + 어두운 모양 (내비 .ui-sign 과 같은 그림) ── */
-.jj .ph-sign { --shape: var(--on-status); --mark: var(--c); flex: none; display: grid; place-items: center; background: var(--c); border-radius: var(--lamp-r, var(--r-lamp)); transition: background-color var(--dur-4) var(--ease-std); }
-.jj .ph-sign > svg { display: block; width: var(--sign-shape, 58%); height: var(--sign-shape, 58%); }
-/* 중립 등 (사건 없는 운전 중): 상태 색 없이 버금 면 + 옅은 선 그림 */
-.jj .ph-sign.neutral { --c: var(--surface-strong); --shape: var(--body); }
+/* ── 경고 표지 (2026-11-15): 면 없이 상태 색 가는 선 표지 하나 (내비 .ui-sign 과 같은 그림). 꽉 찬 색 네모 없음 ── */
+.jj .ph-sign { --shape: var(--c); flex: none; display: grid; place-items: center; background: transparent; }
+.jj .ph-sign > svg { display: block; width: var(--sign-shape, 76%); height: var(--sign-shape, 76%); overflow: visible; }
+.jj .ph-sign .ui-shape { --sw: 6; }
+.jj .ph-sign.lg .ui-shape { --sw: 3.2; }
+/* 중립 표지 (사건 없는 운전 중): 상태 색 없이 옅은 선 그림 */
+.jj .ph-sign.neutral { --shape: var(--muted); }
 
 /* ── 역할 바꿈 (앱 바 오른쪽): [기사 | 운영자], 고른 쪽 = --select 면 + 잉크 ── */
 .jj .ph-role { flex: none; display: flex; gap: 2px; height: 40px; margin: 0 4px 0 8px; padding: 3px; background: var(--canvas); border-radius: var(--r-full); }
@@ -252,7 +254,7 @@
 .jj .ph-chip::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--c); border-radius: var(--r-full); }
 .jj .ph-chip.neutral { color: var(--body); background: var(--surface-strong); }
 .jj .ph-chip.neutral::before { display: none; }
-.jj .ph-chip.solid { color: var(--on-status); background: var(--c); }
+.jj .ph-chip.solid { color: var(--ct); background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, transparent); }
 .jj .ph-chip.solid::before { display: none; }
 /* 점 10 + 상태 글자 (면 없음). 글자는 잉크, 색은 점만 */
 .jj .ph-stat { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; color: var(--ink); }

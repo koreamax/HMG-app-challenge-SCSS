@@ -17,31 +17,24 @@ export const TONE_CLS: Record<Tone, string> = { green: 'tone-green', orange: 'to
  * 경고등 (v4, 내비와 같은 그림 @/ui/parts SignShape): 상태 색으로 꽉 찬 둥근 네모 + 흑연 모양 (초록 ● ✓ · 주황 ▲ ! · 빨강 ◆ ! · 회색 ○ –).
  * 판정 카드 48 · 작은 카드 40 · 사건 카드 44 · 위 알림 32 · 잠금 112. 모서리 12 (위 알림 32 는 8, 잠금 28). 깜박이지 않는다
  */
-export function Sign({ tone, size = 48, shape }: { tone: Tone | 'neutral'; size?: number; shape?: number }) {
-  const k = shape ? Math.round((shape / size) * 100) : 58
+// 2026-11-15 "조용한 경고": 면 없이 상태 색 가는 선 표지 (초록 ○ ✓ · 주황 △ ! · 빨강 ◇ ! · 회색 ○ –). 그림은 자리의 76 % (잠금 112 는 64 %).
+// shape 인자는 옛 꽉 찬 등의 안 그림 크기라 이제 쓰지 않는다 (부르는 쪽은 그대로)
+export function Sign({ tone, size = 48 }: { tone: Tone | 'neutral'; size?: number; shape?: number }) {
+  const big = size >= 100
   return (
-    <span className={'ph-sign ' + (tone === 'neutral' ? 'neutral' : TONE_CLS[tone])} style={{ width: size, height: size, ['--sign-shape' as string]: k + '%', ['--lamp-r' as string]: size >= 100 ? '28px' : size <= 32 ? '8px' : '12px' }} aria-hidden>
-      {tone === 'green' ? <CheckGlyph /> : tone === 'neutral' ? <WheelGlyph /> : <LampShape tone={tone} />}
+    <span className={'ph-sign ' + (tone === 'neutral' ? 'neutral' : TONE_CLS[tone]) + (big ? ' lg' : '')} style={{ width: size, height: size, ['--sign-shape' as string]: big ? '64%' : '76%' }} aria-hidden>
+      {tone === 'neutral' ? <WheelGlyph /> : <LampShape tone={tone} />}
     </span>
   )
 }
 
-/** 초록 경고등 모양: 원판 없이 흑연 ✓ 하나 (주황 ▲ · 빨강 ◆ 와 같은 흑연 · 같은 획 굵기, 모서리 각진 평면 글리프) */
-function CheckGlyph() {
-  return (
-    <svg className="ui-shape" viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M14 52 38 76 86 26" fill="none" stroke="var(--shape)" strokeWidth="15" strokeLinecap="square" strokeLinejoin="miter" />
-    </svg>
-  )
-}
-
-/** 사건 없는 운전 중: 상태 색 없는 중립 등 (운전대). 경보처럼 보이지 않게 흑연 면 + 옅은 선 */
+/** 사건 없는 운전 중: 상태 색 없는 중립 표지 (운전대). 경보처럼 보이지 않게 옅은 선 */
 function WheelGlyph() {
   return (
-    <svg className="ui-shape" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="var(--shape)" strokeWidth="9">
-      <circle cx="50" cy="50" r="40" />
-      <circle cx="50" cy="54" r="9" />
-      <path d="M12 46c12-6 24-8 38-8s26 2 38 8M41 59 26 84M59 59 74 84" strokeLinecap="round" />
+    <svg className="ui-shape" viewBox="0 0 100 100" aria-hidden="true">
+      <circle className="ln" cx="50" cy="50" r="43" />
+      <circle className="ln" cx="50" cy="54" r="9" />
+      <path className="ln" d="M10 46c13-6 25-8 40-8s27 2 40 8M41 59 27 86M59 59 73 86" />
     </svg>
   )
 }

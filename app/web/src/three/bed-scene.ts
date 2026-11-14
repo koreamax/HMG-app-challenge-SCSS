@@ -110,10 +110,11 @@ export type BedHandle = {
 /** 벨트 띠 색: 보통 벨트는 흑연 웨빙, 문제 벨트(주황 · 빨강)만 상태 색 (--alert · --bad) */
 const WEBBING = 0x25282c
 /** 문제 벨트 띠 색 = 상태 색. 자체 빛 0.25 를 같은 색으로 더한다 */
-const WEB_HEX = { orange: 0xff9640, red: 0xff5a52 } as const
+const WEB_HEX = { orange: 0xd9a13f, red: 0xd5503f } as const
 /** 띠의 바탕 색은 상태 색보다 한 단 진하게 (짜임 띠가 주광을 받아 밝아지므로: 크림색으로 바래지 않게). 빛은 상태 색 그대로 */
-const WEB_BASE = { orange: 0xd9601a, red: 0xd63a32 } as const
-const PROBLEM_GLOW = 0.25
+//   2026-11-15 "조용한 경고": 형광 주황 · 빨강 대신 앰버 · 브릭 (채도를 뺀 깊은 색), 자체 빛도 0.25 -> 0.1
+const WEB_BASE = { orange: 0xd0952a, red: 0xa63a2d } as const
+const PROBLEM_GLOW = 0.1
 
 const L = BED.l
 const W = BED.w
@@ -2006,8 +2007,14 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     c.fillStyle = g
     c.fillRect(0, 0, w, h)
   }, false, false)
-  const ghostFillMat = track(new THREE.MeshBasicMaterial({ color: GHOST_INK, alphaMap: ghostFade, transparent: true, opacity: 0.2, depthWrite: false, toneMapped: false }))
-  const ghostFootMat = track(new THREE.MeshBasicMaterial({ color: GHOST_INK, map: softRect(0.06, 3, 1), transparent: true, opacity: 0.26, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }))
+  //   2026-11-15: 도면 주석처럼 — 면은 한 단 옅게 (옆면 0.2 -> 0.1, 발자국 0.26 -> 0.12) 하고 발자국 둘레에 가는 선 (1 px, --ink 55 %) 을 두른다
+  const ghostFillMat = track(new THREE.MeshBasicMaterial({ color: GHOST_INK, alphaMap: ghostFade, transparent: true, opacity: 0.1, depthWrite: false, toneMapped: false }))
+  const ghostFootMat = track(new THREE.MeshBasicMaterial({ color: GHOST_INK, map: softRect(0.06, 3, 1), transparent: true, opacity: 0.12, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }))
+  const ghostLineMat = track(new THREE.LineBasicMaterial({ color: GHOST_INK, transparent: true, opacity: 0.55, depthWrite: false, toneMapped: false }))
+  const ghostLineG = track(new THREE.BufferGeometry())
+  ghostLineG.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, 0, -0.5, 0.5, 0, -0.5, 0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, -0.5, 0, -0.5], 3))
+  const ghostLine = new THREE.LineSegments(ghostLineG, ghostLineMat)
+  ghostLine.renderOrder = 3
   const ghost = new THREE.Group()
   // 옆면 넷만 (윗면 · 밑면 없음)
   const ghostG = track(new THREE.BoxGeometry(1, 1, 1))
@@ -2021,7 +2028,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   const ghostFoot = new THREE.Mesh(floorPlane, ghostFootMat)
   ghostFoot.rotation.x = -Math.PI / 2
   ghostFoot.renderOrder = 2
-  ghost.add(ghostFoot, ghostBox)
+  ghost.add(ghostFoot, ghostBox, ghostLine)
   ghost.visible = false
   ghost.traverse((o) => o.layers.set(FLOOR_LAYER))
   scene.add(ghost)
@@ -2041,6 +2048,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     ghostBox.position.y = hg / 2
     ghostFoot.scale.set((x1 - x0) * 1.06, (z1 - z0) * 1.06, 1)
     ghostFoot.position.y = 0.0015
+    ghostLine.scale.set(x1 - x0, 1, z1 - z0)
+    ghostLine.position.y = 0.004
   }
 
   // ── 꼬리표 · 배지 · 화살 (DOM + SVG, 화면 좌표) ──
@@ -2077,7 +2086,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         const el = document.createElement('div')
         const line = document.createElementNS(SVG_NS, 'line')
         const dot = document.createElementNS(SVG_NS, 'circle')
-        dot.setAttribute('r', '4')
+        dot.setAttribute('r', '3')
         svg.insertBefore(line, arrowG)
         svg.insertBefore(dot, arrowG)
         tagLayer.appendChild(el)
@@ -2097,7 +2106,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         e.el.innerHTML = html
       }
       e.line.setAttribute('class', toneClass(t.tone))
-      e.dot.setAttribute('class', toneClass(t.tone))
+      // 치수선에 닿는 끌어 선은 끝 고리를 그리지 않는다 (선 위에 마디처럼 얹히지 않게)
+      e.dot.setAttribute('class', toneClass(t.tone) + (t.at.kind === 'arrow' ? ' at-arrow' : ''))
     }
     for (const [id, e] of tagEls) {
       if (seen.has(id)) continue
@@ -2133,7 +2143,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       while (e.lines.length < ks.length) {
         const line = document.createElementNS(SVG_NS, 'line')
         const dot = document.createElementNS(SVG_NS, 'circle')
-        dot.setAttribute('r', '4')
+        dot.setAttribute('r', '3')
         svg.insertBefore(line, arrowG)
         svg.insertBefore(dot, arrowG)
         e.lines.push(line)
@@ -3327,16 +3337,19 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       const bx = B.x
       const by = B.y
       arrowScr = { a: A, b: { x: bx, y: by } }
-      const head = 18
+      // 2026-11-15: 굵은 화살 대신 치수선 — 가는 선이 끝까지, 열린 꺾쇠 머리 (채움 없음), 시작 쪽에는 짧은 가로 눈금
+      const head = 11
       arrowLine.setAttribute('x1', A.x.toFixed(1))
       arrowLine.setAttribute('y1', A.y.toFixed(1))
-      arrowLine.setAttribute('x2', (bx - ux * head * 0.6).toFixed(1))
-      arrowLine.setAttribute('y2', (by - uy * head * 0.6).toFixed(1))
+      arrowLine.setAttribute('x2', bx.toFixed(1))
+      arrowLine.setAttribute('y2', by.toFixed(1))
       const nx = -uy
       const ny = ux
-      const p1 = `${(bx - ux * head + nx * head * 0.62).toFixed(1)},${(by - uy * head + ny * head * 0.62).toFixed(1)}`
-      const p2 = `${(bx - ux * head - nx * head * 0.62).toFixed(1)},${(by - uy * head - ny * head * 0.62).toFixed(1)}`
-      arrowHead.setAttribute('d', `M${bx.toFixed(1)},${by.toFixed(1)} L${p1} L${p2} Z`)
+      const p1 = `${(bx - ux * head + nx * head * 0.55).toFixed(1)},${(by - uy * head + ny * head * 0.55).toFixed(1)}`
+      const p2 = `${(bx - ux * head - nx * head * 0.55).toFixed(1)},${(by - uy * head - ny * head * 0.55).toFixed(1)}`
+      const t1 = `${(A.x + nx * 6).toFixed(1)},${(A.y + ny * 6).toFixed(1)}`
+      const t2 = `${(A.x - nx * 6).toFixed(1)},${(A.y - ny * 6).toFixed(1)}`
+      arrowHead.setAttribute('d', `M${p1} L${bx.toFixed(1)},${by.toFixed(1)} L${p2} M${t1} L${t2}`)
       arrowG.setAttribute('class', 'bv-arrow tone-' + (input.arrowTone ?? 'red'))
       arrowG.style.display = ''
       arrowRect = { x: Math.min(A.x, bx) - 10, y: Math.min(A.y, by) - 10, w: Math.abs(bx - A.x) + 20, h: Math.abs(by - A.y) + 20 }
@@ -3730,7 +3743,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     if (pulseMats.size) {
       // 문제 벨트: 자체 빛 0.25 를 가운데로 0.1 ~ 0.6 (1.6 s 주기, 5 번, 마지막에 잦아든다). 주행 · 움직임 줄이기 · 다 숨쉰 뒤는 0.25 그대로
       const a = hasPulse && moving ? breath(now, pulseT0, PULSE_MS, PULSE_N) : 0
-      const v = PROBLEM_GLOW + a * (a > 0 ? 0.25 * Math.sin(((now - pulseT0) / PULSE_MS) * Math.PI * 2) + 0.1 : 0)
+      const v = PROBLEM_GLOW + a * (a > 0 ? 0.1 * Math.sin(((now - pulseT0) / PULSE_MS) * Math.PI * 2) + 0.04 : 0)
       let changed = false
       for (const m of pulseMats)
         if (m.emissiveIntensity !== v) {
@@ -3742,7 +3755,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     // 더 걸 자리 띠: 1.5 s 주기로 자체 빛이 옅게 숨쉰다 (5 번). 아니면 그대로
     if (hintMats.size) {
       const a = hasHint && moving ? breath(now, hintT0, HINT_MS, PULSE_N) : 0
-      const o = HINT_GLOW + a * 0.18 * Math.sin(((now - hintT0) / HINT_MS) * Math.PI * 2)
+      const o = HINT_GLOW + a * 0.08 * Math.sin(((now - hintT0) / HINT_MS) * Math.PI * 2)
       let changed = false
       for (const m of hintMats)
         if (m.emissiveIntensity !== o) {

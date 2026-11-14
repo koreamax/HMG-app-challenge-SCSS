@@ -34,7 +34,7 @@
 |---|---|---|---|
 | ![](docs/phone_04_check3d.png) | ![](docs/phone_11_notification.png) | ![](docs/phone_12_event_kit.png) | ![](docs/phone_31_hub.png) |
 
-영상: [시연 영상](docs/demo.mp4) · [디지털 트윈 급제동](docs/twin_brake.mp4) · [숏폼 (세로 44초)](docs/shorts.mp4)
+영상: [시연 영상](docs/demo.mp4) · [디지털 트윈 급제동](docs/twin_brake.mp4)
 
 ## 구성
 
