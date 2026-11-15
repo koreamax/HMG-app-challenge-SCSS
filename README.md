@@ -69,16 +69,24 @@ npm install
 npm run dev        # http://localhost:5173/?app=stage   (차 화면 ?app=nav, 휴대폰 ?app=phone)
 ```
 
-설치 파일: [`apk/jaejeok-nav-debug.apk`](apk/jaejeok-nav-debug.apk) (차 화면, Pleos Connect) · [`apk/jaejeok-phone-debug.apk`](apk/jaejeok-phone-debug.apk) (휴대폰)
+설치 파일 (release):
+
+- [`apk/SCSS_적재적소_release.apk`](apk/SCSS_적재적소_release.apk): 차량 앱 (Pleos Connect, 심사 대상)
+- [`apk/SCSS_적재적소_phone_release.apk`](apk/SCSS_적재적소_phone_release.apk): 휴대폰 앱
 
 안드로이드 APK 직접 빌드 (JDK 17, Gradle 8.7):
 
 ```bash
 cd app/web && npm run build
-cd ../android && gradle assembleNavDebug assemblePhoneDebug
+cd ../android && gradle assembleNavRelease assemblePhoneRelease
 ```
 
-Pleos Connect 에뮬레이터 자동 시험: `app/tools/e2e/pleos-run.sh` (설명은 `app/README_dev.md`)
+## 테스트 환경
+
+- Pleos Connect 에뮬레이터 v2.1.0 (공식 배포판, AVD `pleos_connect`), Virtual Console로 차량 신호 입력
+- 화면 규격: 앱 창 1224×880 (한 앱), 611×880 (두 앱 세로 분할), 넓은 화면 1920×720 · 1920×1080 대응
+- 필요한 설정: Pleos Playground SDK (Vehicle 2.3.2, NaviHelper 3.0.5, TTS/STT 3.3.1, FusedLocation 1.1.3)는 `nexus-playground.pleos.ai` Maven 저장소에서 받습니다. 앱 설치 후 마이크(“네” 인식)와 위치 권한을 허용합니다.
+- 자동 시험: `app/tools/e2e/pleos-run.sh` (설명은 `app/README_dev.md`)
 
 ## 아직 확인하지 못한 것
 
