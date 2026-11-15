@@ -5,9 +5,10 @@
 
    색의 역할은 셋뿐이다.
      ① 상태 색 (--ok · --alert · --bad · --none): 경고등 면 · 3D 문제 벨트 · 막대 · 작은 점에만.
-     ② 파랑 (--primary): 화면에 하나, 주 단추 면에만.
+     ② 강조 색 (§11.2, 2026-11-15): 아쿠아 틸 --accent (고른 것 · 끌어 선 · 진행 막대 · 포커스 · 주 단추 --primary) + 라벤더 블루 --accent-2 (버금 자료).
+        옛 파랑(#1f5bd8)은 쓰지 않는다. 주행 화면에는 강조 색이 없다 (상태 색 하나뿐).
      ③ 나머지 전부: 거의 검정 바탕 위의 어두운 면 세 단계 (바탕 < 카드 < 우물 · 버금 단추). 선 대신 밝기 차이.
-   고른 것 = 한 단계 밝은 면 (--select) + 잉크 글. 밝은 알약 · 파랑 테두리 금지.
+   고른 것 = --accent-soft 면 + 강조 색 아이콘 · 2 px 표시 줄 + 잉크 글 (목록 줄 누름 · 중립 고름은 --select 그대로). 밝은 알약 · 테두리로 고름 표시 금지.
    깊이는 면 차이로만: 카드 그림자 없음, 떠 있는 것 --e-1 하나, 시트 --e-2 하나. 판에는 빛 번짐 · 그라데이션 없음 (3D 무대만). 글꼴은 Pretendard 하나. */
 .jj {
   /* ── 면 (Obsidian, 낮) ── */
@@ -41,11 +42,37 @@
   --muted: #959ca4; /* 보조 · 단위 · 기준값 (바탕 7.3 · 카드 6.6 · 버금 면 5.3) */
   --muted-soft: #5c636b; /* 글자 금지: 체크 칸 테두리 · 꺾쇠 · 꺼진 기호 (3.0:1) */
 
-  /* ── 누를 것 (파랑, 화면에 하나) ── */
-  --primary: #1f5bd8; /* 글 5.9:1 */
-  --primary-active: #1a4db8;
+  /* ── 강조 색 (§11.2, v5 대시보드 트윈). 검정 바탕 위에 색 둘을 얹는다. 상태 색(세이지 · 앰버 · 브릭)과는 역할이 다르다 ──
+       ① --accent (아쿠아 틸, 색상 189°): 고른 보기 · 고른 것 · 끌어 선 · 진행 막대 · 포커스 · 3D 바닥 빛 · 주 단추 테두리
+       ② --accent-2 (라벤더 블루, 색상 233°): 버금 자료 (기준 눈금 · 추정값 · 그래프 둘째 계열 · 키트가 잰 값의 점)
+       글자에 그라데이션 없음, 빛 덩어리 없음. 빛은 3D 바닥의 고른 물체 아래와 가는 선에만 */
+  --accent: #41cde3; /* 낮. 바탕 10.6:1 · 카드 9.4:1 */
+  --accent-text: #7adbea; /* 강조 글 ('바꾸기' · 고른 칸 글자 · 링크). 카드 11.3:1 · --accent-soft 위 8.6:1 */
+  --accent-press: #2aa9be;
+  --on-accent: #04161a; /* 강조 면 위 글 (체크 표시 · 켜진 손잡이). 8.9:1 */
+  --accent-soft: #1b3137; /* 고른 면 (강조 14 % + 카드). 불투명 */
+  --accent-line: rgba(65, 205, 227, 0.62); /* 끌어 선 · 고른 칸의 2 px 표시 줄 · 머리 세모 */
+  --accent-hair: rgba(65, 205, 227, 0.24); /* 둥근 아이콘 테두리 · 3D 바닥 발판 선 */
+  --accent-glow: rgba(65, 205, 227, 0.16); /* 3D 바닥의 고른 물체 아래 빛 (판에는 쓰지 않는다) */
+  --accent-2: #a3acf3; /* 낮. 바탕 9.3:1 · 카드 8.3:1 */
+  --accent-2-soft: #282c39;
+  --accent-2-line: rgba(163, 172, 243, 0.6);
+  --focus: var(--accent); /* 포커스 테두리 2 px */
+  /* 판 · 3D 칩 · 바닥 격자 */
+  --panel: var(--canvas); /* 오른 단 · 아래 줄의 판 */
+  --panel-line: #1e2226; /* 판 둘레 1 px (밝은 선이 아니라 면 차이 정도, 카드보다 한 단 밝다) */
+  --chip-bg: rgba(8, 10, 12, 0.82); /* 3D 위 정보 칩 */
+  --chip-line: rgba(255, 255, 255, 0.1);
+  --stage-grid: rgba(255, 255, 255, 0.05); /* 바닥 격자 0.5 m 선 */
+  --stage-grid-major: rgba(255, 255, 255, 0.09); /* 1 m 선 */
+  --track: var(--surface-strong); /* 막대 길 */
+
+  /* ── 누를 것 (주 단추, 화면에 하나): 깊은 틸 면 + 잉크 글 + 1 px 강조 테두리 (§11.2). 파랑(#1f5bd8)은 2026-11-15 부터 쓰지 않는다 ── */
+  --primary: #0c7284; /* 잉크 글 5.1:1 */
+  --primary-active: #0a6070;
   --primary-pressed: var(--primary-active);
-  --primary-text: #8db6fa; /* 파랑 글: '바꾸기' 정도만 (카드 8.9:1) */
+  --primary-rim: rgba(65, 205, 227, 0.5); /* 주 단추 안쪽 1 px 선 (inset) */
+  --primary-text: var(--accent-text); /* 강조 글: '바꾸기' 정도만 */
   --on-primary: #f3f4f6;
 
   /* ── 상태 색 (2026-11-15 "조용한 경고"): 순색 대신 한 단 깊고 채도를 뺀 계기판 색 — 세이지 초록 · 앰버 · 브릭.
@@ -76,24 +103,32 @@
 
   /* ── 글자 눈금 (§10.4). 내비는 설계 px: 실제 Pleos 창 1224 x 880 = 설계 1600 (x0.765), 세로 창 611 = 설계 800.
        CSS px 값 x 1.307 = 설계 px. verdict 44 · title 26 · value 36 · heading 22 · body 20 · label 18 · caption 18 · drive 72 ── */
-  --fs-display: 58px; /* 판정 말 (44 CSS px) */
-  --fs-drive: 96px; /* 주행 한 줄 (73 CSS px, 지금 크기 유지) */
-  --fs-value: 47px; /* 칸 값 tabular (36) */
-  --fs-title: 34px; /* 할 일 문장 · 시트 · 화면 제목 (26) */
-  --fs-heading: 29px; /* 카드 머리 · 줄 제목 (22) */
-  --fs-body: 26px; /* 보조 문장 (20) */
-  --fs-label: 24px; /* 칸 이름 · 막대 글 · 칩 600 (18.4) */
+  /* v5 대시보드 트윈 (§11.3, 2026-11-15): 큰 글을 줄였다 — 판정 말 58 -> 44 · 주행 한 줄 96 -> 80 · 칸 값 47 -> 34 (지표 값은 30) ·
+       할 일 34 -> 30 · 머리 29 -> 26 · 본문 26 -> 24. 바닥은 그대로 24 설계 px (실제 창 18.4 CSS px, v2-sizes.mjs 가 잰다) */
+  --fs-display: 44px; /* 판정 말 (34 CSS px) */
+  --fs-drive: 80px; /* 주행 한 줄 (61 CSS px) */
+  --fs-value: 34px; /* 큰 값 tabular: 기록 요약 · 자세히 (26) */
+  --fs-kpi: 30px; /* 지표 값 (위 지표 줄, 23) */
+  --fs-title: 30px; /* 할 일 문장 · 시트 · 화면 제목 (23) */
+  --fs-heading: 26px; /* 줄 제목 · 단추 글 (20) */
+  --fs-body: 24px; /* 보조 문장 (18.4) */
+  --fs-label: 24px; /* 지표 이름 · 판 머리 · 막대 글 600 (18.4) */
   --fs-caption: 24px; /* 기준값 · 메타 400 muted (18.4, 내비 바닥) */
+  --fs-chip: 22px; /* 3D 위 정보 칩 (.bv 안에서만: 16.8 CSS px) */
+  --fs-micro: 20px; /* 그래프 눈금 (svg 안에서만) */
   --fs-row: var(--fs-heading);
   --fs-button: var(--fs-heading);
-  /* 폰 눈금 (px, 390 x 844): verdict 26 · title 18 · value 28 · heading 16 · body 15 · label 13 · caption 13 */
-  --fsp-display: 26px;
-  --fsp-value: 28px;
-  --fsp-title: 18px;
-  --fsp-heading: 16px;
-  --fsp-body: 15px;
-  --fsp-label: 13px;
-  --fsp-caption: 13px;
+  /* 폰 눈금 (px, 390 x 844, §11.3): verdict 22 · title 17 · value 20 · kpi 18 · heading 15 · body 14 · label 12 · caption 12.
+     phone.css 의 .jj.ph-root 가 같은 값으로 덮어쓴다 (폰 담당이 맞춘다). 바닥 12 (v2-sizes.mjs) */
+  --fsp-display: 22px;
+  --fsp-value: 20px;
+  --fsp-kpi: 18px;
+  --fsp-title: 17px;
+  --fsp-heading: 15px;
+  --fsp-body: 14px;
+  --fsp-label: 12px;
+  --fsp-caption: 12px;
+  --fsp-chip: 12px; /* 3D 위 정보 칩 */
   --lh-tight: 1.15; /* 큰 글 */
   --lh-body: 1.45; /* 본문 */
   --unit: 0.45; /* 단위 = 값 x 0.45, --muted */
@@ -121,6 +156,10 @@
   --r-stage: 0px; /* 3D 무대: 경계가 없으므로 모서리도 없다 */
   --r-lamp: 21px; /* 경고등 */
   --r-full: 999px; /* 켜기 · 듣는 중 알약 · 점 */
+  /* v5 (§11): 판 · 단추 · 칩은 한 단 덜 둥글게 (대시보드의 반듯한 판). 폰은 phone.css 에서 12 · 12 · 6 */
+  --r-panel: 16px; /* 오른 단 판 · 아래 줄 카드 · 지표 칸 */
+  --r-btn: 14px; /* 단추 · 보기 칸 */
+  --r-chip: 8px; /* 3D 위 정보 칩 */
   --icon: 32px; /* 아이콘 (폰 24) */
 
   /* ── 높이: 카드 = 면 차이만 (그림자 없음) · 1 = 떠 있는 것(알림 · 토스트 · 자세히) · 2 = 시트 ── */
@@ -172,6 +211,21 @@
   --stage-floor: #050607;
   --stage-shadow: 0.6;
   --stage-exposure: 0.92;
+  /* 강조 색 (밤): 한 단 차분하게 */
+  --accent: #34c3da; /* 바탕 9.9:1 · 카드 8.9:1 */
+  --accent-text: #6fd6e6;
+  --accent-press: #27a2b7;
+  --accent-soft: #182d33;
+  --accent-line: rgba(52, 195, 218, 0.6);
+  --accent-hair: rgba(52, 195, 218, 0.22);
+  --accent-glow: rgba(52, 195, 218, 0.14);
+  --accent-2: #98a2f0; /* 바탕 8.6:1 · 카드 7.8:1 */
+  --accent-2-soft: #262936;
+  --accent-2-line: rgba(152, 162, 240, 0.58);
+  --panel-line: #1c1f23;
+  --primary-rim: rgba(52, 195, 218, 0.46);
+  --stage-grid: rgba(255, 255, 255, 0.045);
+  --stage-grid-major: rgba(255, 255, 255, 0.08);
   --bad-soft: #261819;
   --scrim: rgba(0, 0, 0, 0.72);
 }

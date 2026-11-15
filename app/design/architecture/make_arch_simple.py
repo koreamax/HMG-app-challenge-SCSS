@@ -60,37 +60,25 @@ def arrow(a, b, label='', dashed=False, both=False, exit=None, entry=None, pts=(
 
 W, H, G = 170, 150, 46          # 카드 크기와 사이
 X = [20 + k * (W + G) for k in range(5)]
-Y1, Y2, Y3 = 70, 290, 500
+Y1, Y2, Y3 = 20, 240, 450
 
-text(20, 10, 900, 40, '적재적소 구성 한눈에 보기', size=24, color=INK, bold=True)
-car = card(X[0], Y1, W, H, '🚚', '차량 신호', '속도 · 브레이크\n조향 · 기어 · 뒷문')
-app = card(X[1], Y1, W, H, '📲', '내비 앱', 'Pleos SDK 5종\n받아서 넘김')
-eng = card(X[2], Y1, W, H, '🧠', '판정 엔진', '짐이 버티는 힘\nvs 차가 거는 힘', accent=True)
-out = card(X[3], Y1, W, H, '🔊', '화면 · 음성', '정차: 3D 확인\n주행: 한 문장')
-drv = card(X[4], Y1, W, H, '🙋', '운전자', '"네" 한마디로\n쉼터 경유')
-
-kit = card(X[0], Y2, W, H - 10, '📡', '센서 키트', '아이디어 (미제작)', dashed=True)
-nav = card(X[1], Y2, W, H - 10, '🧭', 'Pleos 내비', '쉼터를 경유지로')
-ph = card(X[2], Y2, W, H - 10, '📱', '휴대폰 판', '상차 · 사진 · 기록' + chr(10) + 'L4 허브 (무인 트럭)')
-cloud = card(X[3], Y2, W, H - 10, '☁️', '운송장 공유', '계획 (미제작)', dashed=True)
-
-ver = card(X[0], Y3 - 40, X[4] + W - X[0], 120, '🧪',
-           '검증: Isaac Sim PV5 91회  ·  Omniverse 실사 렌더  ·  Pleos 에뮬레이터 14/14',
-           '실제 트럭 측정 없이 시뮬레이션과 공식 에뮬레이터로 확인')
+car = card(X[0], Y1, W, H, '🚚', '차량 신호', '')
+app = card(X[1], Y1, W, H, '📲', '차량 앱', 'Pleos SDK 5종')
+eng = card(X[2], Y1, W, H, '🧠', '판정 엔진', '', accent=True)
+out = card(X[3], Y1, W, H, '🔊', '화면 · 음성', '')
+drv = card(X[4], Y1, W, H, '🙋', '기사', '')
+nav = card(X[1], Y2, W, H - 10, '🧭', 'Pleos 내비', '')
+ph = card(X[2], Y2, W, H - 10, '📱', '휴대폰 앱', '')
 
 arrow(car, app)
 arrow(app, eng)
 arrow(eng, out)
 arrow(out, drv)
-arrow(kit, app, dashed=True, exit=(1, .25), entry=(0, .8), pts=((X[1] - G // 2, Y2 + 35), (X[1] - G // 2, Y1 + 120)))
-arrow(app, nav, '경유지', both=True, exit=(.6, 1), entry=(.6, 0))
-arrow(eng, ph, '같은 판정', both=True)
-arrow(ph, cloud, '', dashed=True)
-
-text(X[3] + W + G + W - 280, 10, 300, 40, '실선 = 동작함   점선 = 계획 · 아이디어', size=14, color=MUTED, align='right')
+arrow(app, nav, '경유지', both=True)
+arrow(eng, ph, '기록', both=True)
 
 xml = ('<mxfile host="drawio" agent="jaejeok make_arch_simple.py"><diagram id="arch" name="구성 한눈에">'
-       f'<mxGraphModel dx="1100" dy="660" grid="0" page="1" pageWidth="1100" pageHeight="620" background="#ffffff"><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
+       f'<mxGraphModel dx="1100" dy="660" grid="0" page="1" pageWidth="1100" pageHeight="410" background="#ffffff"><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
        + ''.join(cells) + '</root></mxGraphModel></diagram></mxfile>')
 (HERE / 'jaejeok_architecture.drawio').write_text(xml, encoding='utf-8')
 print('DRAWIO', len(cells))

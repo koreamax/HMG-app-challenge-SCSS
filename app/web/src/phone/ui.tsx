@@ -50,7 +50,7 @@ export function Banner({ data, mini = false }: { data: BannerData; mini?: boolea
   return (
     <>
       <div className={'ph-banner ' + TONE_CLS[data.tone] + (mini ? ' mini' : '')} role="status" aria-live="polite">
-        <Sign tone={data.tone} size={mini ? 40 : 48} />
+        <Sign tone={data.tone} size={mini ? 28 : 32} />
         <div className="tx">
           <div className="vd">{data.title}</div>
           <div className="todo">{data.todo}</div>
@@ -260,28 +260,27 @@ export function Tile({
   /** 막대 자리(맨 아래)에 caption 한 줄. 막대가 없는 칸도 같은 줄의 막대 칸과 균형이 맞게 (빈 아래 반쪽 없음) */
   cap?: ReactNode
 }) {
-  // v4: 이름 앞 아이콘 없음 (icon 은 API 만 지킨다). 상태는 오른쪽 위 점 + 막대, 값은 잉크
-  void icon
-  const cls = 'ph-tile ' + (tone === 'neutral' ? 'neutral' : TONE_CLS[tone]) + (foot ? ' has-foot' : '')
-  const showBar = !!bar || !cap
+  // v5 지표 칸 (§11.7, .ph-kpis 안): [틸 아이콘 14 + 이름 + 상태 점] / [값 + 단위 ……… 기준 글] / [막대 3]. 값은 잉크, 기준 눈금 · '기준 0.50' 은 둘째 강조 색
+  const cls = 'ph-kpi ' + (tone === 'neutral' ? 'neutral' : TONE_CLS[tone])
   const body = (
     <>
       <span className="hd">
+        {icon}
         <span className="nm">{name}</span>
         {tone !== 'neutral' && <i className="dot" aria-hidden />}
       </span>
       <span className="val">
         <b className={word ? 'word' : ''}>{typeof value === 'number' || typeof value === 'string' ? <CountUp value={value} /> : value}</b>
         {unit && <small>{unit}</small>}
-        {foot && <span className="ft">{foot}</span>}
+        {foot && <span className="cap ref">{foot}</span>}
+        {cap && <span className="cap">{cap}</span>}
       </span>
-      {showBar && (
+      {bar && (
         <span className="bar" aria-hidden>
-          {bar && bar.ratio !== null && <i style={{ transform: `scaleX(${Math.max(0, Math.min(1, bar.ratio))})` }} />}
-          {bar && bar.mark != null && <s style={{ left: `${Math.max(0, Math.min(1, bar.mark)) * 100}%` }} />}
+          {bar.ratio !== null && <i style={{ transform: `scaleX(${Math.max(0, Math.min(1, bar.ratio))})` }} />}
+          {bar.mark != null && <s style={{ left: `${Math.max(0, Math.min(1, bar.mark)) * 100}%` }} />}
         </span>
       )}
-      {cap && <span className="cap">{cap}</span>}
     </>
   )
   return onClick ? (
@@ -372,7 +371,7 @@ export function ListRow({
 export function EventCard({ tone, title, caption, unread, onClick }: { tone: Tone; title: string; caption: string; unread?: boolean; onClick: () => void }) {
   return (
     <button type="button" className="ph-ecard" onClick={onClick} aria-label={title + ', ' + caption + (unread ? ', 안 읽음' : '')}>
-      <Sign tone={tone} size={44} shape={26} />
+      <Sign tone={tone} size={32} />
       <span className="tx">
         <b>{title}</b>
         <span>{caption}</span>
@@ -436,11 +435,21 @@ export function Gap() {
   return <div className="ph-gap" aria-hidden />
 }
 
-export function Head({ title, caption }: { title: string; caption?: ReactNode }) {
+/** 판 머리 40 (§11.7): [틸 세모][이름 13 / 600] … [진행 막대 56 x 3][보조 글 12]. progress 를 주면 막대가 붙는다 (다 차도 틸: 초록은 판정에만) */
+export function Head({ title, caption, progress }: { title: string; caption?: ReactNode; progress?: { done: number; total: number } | null }) {
   return (
     <div className="ph-head">
       <b>{title}</b>
-      {caption && <span>{caption}</span>}
+      {(caption || progress) && (
+        <span>
+          {progress && progress.total > 0 && (
+            <i className="prog" aria-hidden>
+              <i style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress.done / progress.total))})` }} />
+            </i>
+          )}
+          {caption}
+        </span>
+      )}
     </div>
   )
 }
@@ -462,7 +471,7 @@ export function PhotoCell({ src, title, caption, tag, onTake, onView }: { src: s
   // 빈 칸: 평평한 우물 면(--surface-soft) 한 장에 아이콘 + 말 (그라데이션 · 테두리 없음)
   return (
     <button type="button" className="ph-photo empty" onClick={onTake}>
-      <Camera size={28} strokeWidth={1.8} color="var(--ink)" aria-hidden />
+      <Camera size={24} strokeWidth={1.8} aria-hidden />
       <b>{title}</b>
       {caption && <span>{caption}</span>}
     </button>

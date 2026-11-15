@@ -14,6 +14,7 @@ import { CARGO, type CargoKind } from '@/engine/cargo'
 import { BAR_NAME, shiftWords } from '@/ui/format'
 import { STATUS_TITLE, TONE_RANK, fmtN, incidentAlert, incidentsOf, limitName } from './derive'
 import type { HubNote } from './state'
+import { withChips } from './chips'
 
 export type TruckEvent = {
   kind: AlertKind
@@ -88,7 +89,8 @@ export const retightKit = (k: Kit | null): Kit | null => (k ? { c1: k.c1 === nul
 const massWord = (kg: number) => (kg >= 500 ? (kg / 1000).toFixed(2).replace(/0$/, '').replace(/\.$/, '') + ' t' : kg + ' kg')
 export const rowWord = (r: TruckRow) => `${r.no}번 줄 · ${CARGO[r.kind].label} ${massWord(r.massKg)} · 바 ${r.belts}개`
 const totalWord = (r: TruckRow) => '총 ' + r.rows + '줄 · ' + massWord(r.rows * r.massKg)
-const judgeRow = (r: TruckRow, kit: Kit | null) => judgeLoad({ kind: r.kind, massKg: r.massKg, belts: r.belts, beltType: r.beltType, frontWall: r.frontWall }, kit)
+const rowLoad = (r: TruckRow) => ({ kind: r.kind, massKg: r.massKg, belts: r.belts, beltType: r.beltType, frontWall: r.frontWall })
+const judgeRow = (r: TruckRow, kit: Kit | null) => judgeLoad(rowLoad(r), kit)
 
 /** 줄 하나의 3D 입력 (three/bed-input 의 정차 3D 확인과 같은 규칙: 사건이 열려 있으면 '충분' 대신 '다시 확인') */
 function rowBed(r: TruckRow, v: LoadVerdict, kit: Kit | null, ev: TruckEvent | null, fault = false): BedInput {
@@ -324,7 +326,8 @@ function mockTruck(m: MockSpec): FleetTruck {
     nextHub: m.nextHub,
     then: m.then,
     lastCheck: m.lastCheck,
-    bed: rowBed(m.row, v, m.kit, ev, !!m.fault),
+    // 3D 확인과 같은 무대 말씨 (§11.7): 사건이 없으면 고른 짐 테두리 + 정보 칩, 사건이면 상태 칩 + 짐 칩 (또는 '출발 때 자리')
+    bed: withChips(rowBed(m.row, v, m.kit, ev, !!m.fault), v, rowLoad(m.row), !ev && !m.fault),
     sortAt: ev?.at ?? (m.fault ? T0 - 4 * MIN : m.lastCheck.at),
   }
 }
@@ -352,7 +355,7 @@ function withHub(t: FleetTruck, h: HubNote | undefined): FleetTruck {
       lastCheck: { at: h.approval.at, where: hub + ' 점검' },
       place: hub + ' 출발 · 점검 뒤',
       nextHub: t.then ?? t.nextHub,
-      bed: rowBed(m.row, v2, kit2, null),
+      bed: withChips(rowBed(m.row, v2, kit2, null), v2, rowLoad(m.row), true),
     }
   }
   if (h.arrivedAt && !h.approval) return { ...t, todo: '허브 도착 · 점검 중', line: (h.request?.hub ?? t.nextHub.name) + ' 점검 중' }
@@ -417,7 +420,7 @@ export function liveTruck(s: AppState): FleetTruck {
     place: out?.mode === 'drive' ? '경부고속도로 하행 · 안성 부근' : s.waypoint ? s.waypoint.name + ' 정차' : '경부고속도로 · 정차 중',
     nextHub: { name: '옥천 허브', km: hubKm, etaMin: Math.max(2, Math.round(hubKm * 0.72)) },
     lastCheck: { at: depart, where: '의왕 ICD 출발' },
-    bed: load && v && vShown ? stageInput({ load, verdict: a || lastInc ? v : vShown, kit: s.kit, alert: stageAlert, mode: stageAlert ? 'relash' : 'park' }).input : null,
+    bed: load && v && vShown ? withChips(stageInput({ load, verdict: a || lastInc ? v : vShown, kit: s.kit, alert: stageAlert, mode: stageAlert ? 'relash' : 'park' }).input, a || lastInc ? v : vShown, load, !stageAlert) : null,
     sortAt: ev?.at ?? depart,
   }
 }

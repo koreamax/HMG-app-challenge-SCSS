@@ -1,4 +1,4 @@
-/* 휴대폰 판 "Obsidian Studio" (design/DESIGN_SPEC.md §10 다크 프리미엄, 폰 §10.5).
+/* 휴대폰 판 "Obsidian Studio" + v5 대시보드 트윈 (design/DESIGN_SPEC.md §10 다크 프리미엄, §11.7 폰: 지표 줄 · 판(머리 세모) · 가는 막대 · 틸 고름).
    테마는 하나(어두운 쪽). 바탕(--bg) < 카드(--canvas) < 우물 · 버금 단추(--surface-soft · --surface-strong) 밝기 차이로만 나눈다.
    흰색 · 밝은 회색 면, 밝은 1px 선 없음. 밝은 것은 글자 · 상태 색 · 주 단추 하나 · 3D 속 금속 반사뿐.
    빛 · 반사 · 재질은 3D 에만, 판은 그림자 · 그라데이션 · 빛 번짐 없이 납작하게. 떠 있는 것(위 알림 · 토스트 · 시트)만 --e-1 · --e-2.
@@ -8,25 +8,33 @@
 @keyframes ph-rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
 .jj.ph-root {
-  /* 폰 글자 눈금 (§10.4: verdict 28 · title 18 · value 24 · heading 16 · body 15 · label 13 · caption 13). 이 밖의 크기는 쓰지 않는다.
-     크기 순서: 판정 말(28) > 칸 값(24) > 할 일 · 줄 제목. 눈이 숫자보다 판정에 먼저 가게 */
-  --fsp-verdict: 28px;
-  --fsp-display: 28px;
-  --fsp-title: 18px;
-  --fsp-value: 24px;
-  --fsp-heading: 16px;
-  --fsp-body: 15px;
-  --fsp-label: 13px;
-  --fsp-caption: 13px;
-  /* 폰 모서리 (§10.4: 카드 16 · 단추 14 · 경고등 12 · 알림 · 토스트 16 · 시트 24 · 칩 8 · 무대 0) */
-  --r-xs: 8px;
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 16px;
-  --r-xl: 24px;
+  /* 폰 글자 눈금 (§11.3 v5): verdict 22 · title 17 · value 20 · kpi 18 · heading 15 · body 14 · label 12 · caption 12. 이 밖의 크기는 쓰지 않는다 (바닥 12).
+     크기 순서: 판정 말(22) > 큰 값(20) > 지표 값(18) > 제목 · 줄 제목. 큰 글은 없다: 정보는 많지만 어느 것도 소리치지 않는다 */
+  --fsp-verdict: 22px;
+  --fsp-display: 22px;
+  --fsp-title: 17px;
+  --fsp-value: 20px;
+  --fsp-kpi: 18px;
+  --fsp-heading: 15px;
+  --fsp-body: 14px;
+  --fsp-label: 12px;
+  --fsp-caption: 12px;
+  --fsp-chip: 12px;
+  /* 폰 모서리 (§11.2): 판 12 · 단추 12 · 칩 6 · 시트 20 · 무대 0 */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 12px;
+  --r-xl: 20px;
+  --r-panel: 12px;
+  --r-btn: 12px;
+  --r-chip: 6px;
   --r-stage: 0px;
   --r-lamp: 12px;
-  --icon: 24px;
+  --icon: 22px;
+  --row-pad: 16px;
+  /* 판 둘레 1 px (밝은 선이 아니라 면 차이 정도) */
+  --ph-line: inset 0 0 0 1px var(--panel-line);
   --row-pad: 16px;
   position: relative;
   display: flex;
@@ -70,11 +78,12 @@
 .jj .ph-appbar .ph-icell + h1 { padding-left: 0; }
 .jj .ph-icell { width: 48px; height: 48px; flex: none; display: grid; place-items: center; color: var(--ink); border-radius: var(--r-full); transition: background 120ms; }
 .jj .ph-icell:active { background: var(--surface-strong); }
-.jj .ph-icell[aria-pressed='true'] { color: var(--on-select); background: var(--select); }
+.jj .ph-icell[aria-pressed='true'] { color: var(--accent); background: var(--accent-soft); }
 .jj .ph-scroll { position: relative; flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; padding-bottom: 16px; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-padding-bottom: 16px; }
 .jj .ph-scroll::-webkit-scrollbar { display: none; }
-/* 스크롤한 동안: 칸 위 16 px 를 바탕으로 녹인다. 판정 카드 아래 12 px 바탕 띠 + 이 녹임이라, 카드 바로 밑에서 반쪽 글이 칼처럼 잘려 보이지 않는다 */
-.jj .ph-scroll[data-scrolled] { -webkit-mask-image: linear-gradient(180deg, transparent 0, transparent 4px, #000 24px); mask-image: linear-gradient(180deg, transparent 0, transparent 4px, #000 24px); }
+/* 스크롤한 동안: 칸 위 10 px 는 바탕 그대로 (판정 줄 밑의 불투명한 띠), 그 아래 14 px 를 바탕으로 녹인다.
+   판정 줄 바로 밑에서 반쪽 글이 칼처럼 잘리지 않고, 지나가는 무대의 보기 알약 · 판 모서리가 실오라기로 비치지도 않는다 */
+.jj .ph-scroll[data-scrolled] { -webkit-mask-image: linear-gradient(180deg, transparent 0, transparent 10px, #000 24px); mask-image: linear-gradient(180deg, transparent 0, transparent 10px, #000 24px); }
 /* 주 단추 줄: 바탕 위에 단추만 (판 · 선 없음). 위 20 px 는 스크롤 내용을 바탕으로 녹여 반쪽 글이 칼처럼 잘려 보이지 않게 */
 .jj .ph-fixed { position: relative; z-index: 2; flex: none; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 12px 16px 12px; background: var(--bg); }
 .jj .ph-fixed .note { font-size: var(--fsp-caption); color: var(--muted); text-align: center; }
@@ -82,27 +91,29 @@
 .jj .ph-banner.mini + .ph-fixed::before { display: none; }
 .jj .ph-scroll:has(+ :is(.ph-fixed, .ph-banner.mini)) { padding-bottom: 16px; }
 
-/* ── 아래 탭 64: --canvas, 위 선 없음. 고른 탭 = 아이콘 뒤 --select 알약 64 × 32 + 잉크 글, 나머지 --muted ── */
-.jj .ph-tabbar { position: relative; z-index: 2; height: 64px; flex: none; display: flex; padding: 0 8px; background: var(--canvas); }
+/* ── 아래 탭 60: --canvas, 위 선 없음. 고른 탭 = 아이콘 --accent + 뒤 --accent-soft 알약 56 × 28 + 잉크 글 12 / 600, 나머지 --muted ── */
+.jj .ph-tabbar { position: relative; z-index: 2; height: 60px; flex: none; display: flex; padding: 0 8px; background: var(--canvas); }
 /* 주 단추 줄이 없는 화면: 탭 바 위 20 px 에서 스크롤 내용을 바탕으로 녹인다 (반쪽 글 줄이 탭 바에 칼처럼 잘려 보이지 않게) */
 .jj .ph-tabbar::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 20px; background: linear-gradient(180deg, transparent, var(--bg) 85%); pointer-events: none; }
 .jj.ph-root:has(.ph-main .ph-fixed) .ph-tabbar::before { display: none; }
-.jj .ph-tab { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; color: var(--muted); }
-.jj .ph-tab .pill { width: 64px; height: 32px; display: grid; place-items: center; color: var(--muted); border-radius: var(--r-full); background: transparent; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
+.jj .ph-tab { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; color: var(--muted); }
+.jj .ph-tab .pill { width: 56px; height: 28px; display: grid; place-items: center; color: var(--muted); border-radius: var(--r-full); background: transparent; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
+.jj .ph-tab .pill svg { width: 20px; height: 20px; }
 .jj .ph-tab:active .pill { background: var(--surface-strong); }
 .jj .ph-tab[aria-selected='true'] { color: var(--ink); }
-.jj .ph-tab[aria-selected='true'] .pill { color: var(--on-select); background: var(--select); }
-.jj .ph-tab .cnt { position: absolute; top: 4px; left: calc(50% + 14px); min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--on-status); background: var(--bad); border-radius: var(--r-full); box-shadow: 0 0 0 2px var(--canvas); font-variant-numeric: tabular-nums; }
+.jj .ph-tab[aria-selected='true'] .pill { color: var(--accent); background: var(--accent-soft); }
+.jj .ph-tab .cnt { position: absolute; top: 4px; left: calc(50% + 12px); min-width: 16px; height: 16px; padding: 0 4px; display: grid; place-items: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--on-status); background: var(--bad); border-radius: var(--r-full); box-shadow: 0 0 0 2px var(--canvas); font-variant-numeric: tabular-nums; }
 
-/* ── 단추: 주 = 파랑 면 56 (화면에 하나, 빛 없음) · 버금 = --surface-strong 52 ── */
-.jj .ph-btn { width: 100%; height: 56px; flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; font-size: 16px; font-weight: 700; line-height: 1; letter-spacing: -0.01em; white-space: nowrap; text-align: center; color: var(--on-primary); background: var(--primary); border-radius: var(--r-md); transition: background 120ms; }
-.jj .ph-btn:active:not(:disabled) { background: var(--primary-active, var(--primary-pressed, #1a4db8)); }
+/* ── 단추: 주 = 깊은 틸 면 52 + 안쪽 1 px 강조 선 (화면에 하나, 빛 없음) · 버금 = --surface-strong 48 ── */
+.jj .ph-btn { width: 100%; height: 52px; flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; font-size: var(--fsp-heading); font-weight: 700; line-height: 1; letter-spacing: -0.01em; white-space: nowrap; text-align: center; color: var(--on-primary); background: var(--primary); border-radius: var(--r-btn); box-shadow: inset 0 0 0 1px var(--primary-rim); transition: background 120ms; }
+.jj .ph-btn > svg, .jj .ph-btn2 > svg { flex: none; width: 18px; height: 18px; }
+.jj .ph-btn:active:not(:disabled) { background: var(--primary-active); }
 /* 꺼진 주 단추: 우물 면 + --muted 글 (버금 단추와 다른 모양, 누름 없음) */
-.jj .ph-btn:disabled { color: var(--muted); background: var(--surface-soft); cursor: default; }
+.jj .ph-btn:disabled { color: var(--muted); background: var(--surface-soft); box-shadow: none; cursor: default; }
 .jj .ph-btn:disabled:active { color: var(--muted); background: var(--surface-soft); transform: none; }
 /* 꺼진 주 단추 위 한 줄: 무엇을 하면 켜지는지 */
 .jj .ph-why { margin: 0; padding: 2px 4px 0; font-size: var(--fsp-caption); font-weight: 400; line-height: 1.35; text-align: center; color: var(--muted); }
-.jj .ph-btn2 { width: 100%; height: 52px; flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; font-size: var(--fsp-body); font-weight: 600; line-height: 1.3; white-space: nowrap; text-align: center; color: var(--ink); background: var(--surface-strong); border-radius: var(--r-md); transition: background 120ms; }
+.jj .ph-btn2 { width: 100%; height: 48px; flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; font-size: var(--fsp-body); font-weight: 600; line-height: 1.3; white-space: nowrap; text-align: center; color: var(--ink); background: var(--surface-strong); border-radius: var(--r-btn); transition: background 120ms; }
 .jj .ph-btn2:active { background: var(--surface-press); }
 .jj .ph-btn2:disabled { color: var(--muted); background: var(--surface-soft); cursor: default; }
 .jj .ph-btn2.bad { color: var(--bad-t); background: var(--surface-strong); }
@@ -120,7 +131,14 @@
 .jj .ph-role:last-child { margin-right: 12px; }
 .jj .ph-role > button { min-width: 56px; display: grid; place-items: center; padding: 0 12px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; text-align: center; color: var(--muted); border-radius: var(--r-full); transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
 .jj .ph-role > button:active:not([aria-checked='true']) { background: var(--surface-soft); }
-.jj .ph-role > button[aria-checked='true'] { color: var(--on-select); font-weight: 700; background: var(--select); }
+.jj .ph-role > button[aria-checked='true'] { color: var(--ink); font-weight: 600; }
+/* 누르는 곳은 56 x 48 (알약 40 밖으로 위아래 4 씩), 고른 면은 그 안 34 높이 알약 (::before) */
+.jj .ph-role { align-items: center; padding: 0 3px; isolation: isolate; box-shadow: var(--ph-line); }
+.jj .ph-role > button { position: relative; height: 48px; }
+.jj .ph-role > button:active:not([aria-checked='true']) { background: transparent; }
+.jj .ph-role > button::before { content: ''; position: absolute; inset: 7px 0; z-index: -1; background: transparent; border-radius: var(--r-full); transition: background-color var(--dur-1) var(--ease-std); }
+.jj .ph-role > button:active:not([aria-checked='true'])::before { background: var(--surface-soft); }
+.jj .ph-role > button[aria-checked='true']::before { background: var(--accent-soft); }
 /* 운영자 모드: 탭 둘 (허브 · 설정) 이라 가운데로 모은다 */
 .jj .ph-tabbar[data-n='2'] { padding: 0 56px; }
 
@@ -129,31 +147,35 @@
 .jj .ph-kit > svg { flex: none; }
 .jj .ph-kit.off { color: var(--muted); font-weight: 400; }
 
-/* ── 판정 카드 88: [경고등 48][판정 말 verdict 한 줄 · 할 일 body]. 화면에서 가장 센 카드 ── */
-.jj .ph-banner { flex: none; display: flex; align-items: center; gap: 16px; min-height: 88px; margin: 0 16px 12px; padding: 12px 16px 12px 20px; background: var(--canvas); border-radius: var(--r-lg); }
-.jj .ph-banner .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-.jj .ph-banner .vd { font-size: var(--fsp-verdict); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ── 판정 줄 64 (§11.7): [표지 32][판정 말 22 한 줄 · 할 일 14]. 판 = --panel + 1 px 둘레 ── */
+.jj .ph-banner { flex: none; display: flex; align-items: center; gap: 12px; min-height: 64px; margin: 0 16px 8px; padding: 8px 16px; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ph-line); }
+.jj .ph-banner .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.jj .ph-banner .vd { font-size: var(--fsp-verdict); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jj .ph-banner .todo { font-size: var(--fsp-body); font-weight: 400; line-height: 1.35; color: var(--body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-/* 작은 판정 카드: 주 단추 바로 위 (상차 입력에서 고칠 때마다 바뀐다). 경고등 40, 판정 말 title 크기 */
-.jj .ph-banner.mini { position: relative; z-index: 2; gap: 12px; min-height: 0; height: 68px; margin: 0 16px; padding: 0 16px; }
-.jj .ph-banner.mini .tx { gap: 2px; }
-.jj .ph-banner.mini .vd { font-size: var(--fsp-title); line-height: 1.25; letter-spacing: -0.01em; }
+/* 작은 판정 줄: 주 단추 바로 위 (상차 입력에서 고칠 때마다 바뀐다). 표지 28, 판정 말 heading 크기 */
+.jj .ph-banner.mini { position: relative; z-index: 2; gap: 10px; min-height: 0; height: 56px; margin: 0 16px; padding: 0 14px; }
+.jj .ph-banner.mini .tx { gap: 1px; }
+.jj .ph-banner.mini .vd { font-size: var(--fsp-heading); line-height: 1.3; letter-spacing: -0.01em; }
 .jj .ph-banner.mini .todo { font-size: var(--fsp-caption); color: var(--muted); -webkit-line-clamp: 1; }
-.jj .ph-alt { flex: none; margin: 0 20px 10px; font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); font-variant-numeric: tabular-nums; }
-.jj .ph-scroll > .ph-alt { margin: 4px 20px 12px; }
+.jj .ph-alt { flex: none; margin: 0 20px 8px; font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jj .ph-scroll > .ph-alt { margin: 4px 20px 10px; }
 
 /* ── 묶음 · 머리 ── */
 .jj .ph-gap { height: 8px; flex: none; }
-.jj .ph-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 24px 20px 10px; scroll-margin-top: 16px; }
-.jj .ph-head b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; color: var(--ink); }
-.jj .ph-head span { font-size: var(--fsp-caption); color: var(--muted); font-variant-numeric: tabular-nums; }
-.jj .ph-head.tight { padding: 14px 20px 8px; }
-.jj .ph-alt + .ph-head { padding-top: 12px; }
+/* 판 머리 40: [세모 6 x 8 --accent][이름 13 / 600] … [진행 막대 56 x 3 + '0 / 2' 12 --muted] */
+.jj .ph-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 14px 20px 6px; scroll-margin-top: 16px; }
+.jj .ph-head b { min-width: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; color: var(--ink); }
+.jj .ph-head b::before { content: ''; flex: none; width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 6px; border-color: transparent transparent transparent var(--accent); }
+.jj .ph-head > span { flex: none; display: flex; align-items: center; gap: 8px; font-size: var(--fsp-caption); line-height: 1.3; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.jj .ph-head .prog { position: relative; flex: none; width: 56px; height: 3px; background: var(--track); border-radius: 2px; overflow: hidden; }
+.jj .ph-head .prog i { position: absolute; inset: 0; background: var(--accent); border-radius: 2px; transform-origin: left center; transition: transform var(--dur-2) var(--ease-std); }
+.jj .ph-head.tight { padding: 12px 20px 6px; }
+.jj .ph-alt + .ph-head { padding-top: 8px; }
 .jj .ph-pad { padding: 0 16px; }
-.jj .ph-note { padding: 10px 20px; font-size: var(--fsp-caption); line-height: 1.45; color: var(--muted); }
+.jj .ph-note { padding: 8px 20px; font-size: var(--fsp-caption); line-height: 1.45; color: var(--muted); }
 .jj .ph-filter { flex: none; padding: 0 16px 8px; }
 /* 목록 = 카드 하나. 줄 사이에만 안쪽으로 들인 --hairline */
-.jj .ph-list { display: flex; flex-direction: column; margin: 0 16px; background: var(--canvas); border-radius: var(--r-lg); overflow: hidden; }
+.jj .ph-list { display: flex; flex-direction: column; margin: 0 16px; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ph-line); overflow: hidden; }
 .jj .ph-list > * + * {
   background-image: linear-gradient(var(--hairline), var(--hairline));
   background-repeat: no-repeat;
@@ -162,124 +184,142 @@
 }
 .jj .ph-cards { display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 0; }
 
-/* ── 짐 칸 다섯: 한 줄 다섯 칸, 높이 64. 고른 칸 = --select + 잉크 ── */
+/* ── 짐 칸 다섯: 한 줄 다섯 칸, 높이 64. 고른 칸 = --accent-soft 면 + 틸 그림 + 잉크 글 + 아래 2 px 표시 줄 ── */
 .jj .ph-cargo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-.jj .ph-cargo-cap { margin: 10px 4px 0; font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); }
-.jj .ph-cargo > * { min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 0 2px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; text-align: center; color: var(--body); background: var(--canvas); border-radius: var(--r-md); transition: background 120ms, color 120ms; }
-.jj .ph-cargo > button svg { color: var(--muted); }
+.jj .ph-cargo-cap { margin: 8px 4px 0; font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); }
+.jj .ph-cargo > * { position: relative; min-width: 0; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 2px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; text-align: center; color: var(--body); background: var(--panel); border-radius: var(--r-btn); box-shadow: var(--ph-line); overflow: hidden; transition: background 120ms, color 120ms; }
+.jj .ph-cargo > button svg { width: 24px; height: 24px; color: var(--muted); }
 .jj .ph-cargo > button:active { background: var(--surface-strong); }
-.jj .ph-cargo > button[aria-pressed='true'] { color: var(--on-select); font-weight: 700; background: var(--select); }
-.jj .ph-cargo > button[aria-pressed='true'] svg { color: var(--on-select); }
+.jj .ph-cargo > button[aria-pressed='true'] { color: var(--ink); background: var(--accent-soft); box-shadow: none; }
+.jj .ph-cargo > button[aria-pressed='true'] svg { color: var(--accent); }
+.jj .ph-cargo > button[aria-pressed='true']::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
 
-/* ── 나눔 단추: --canvas 길 안에 칸, 고른 칸으로 --select 면이 미끄러져 온다. --n 칸 수 · --i 고른 칸 ── */
-.jj .ph-seg { --seg-pad: 4px; --seg-gap: 4px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--seg-gap); height: 56px; padding: var(--seg-pad); background: var(--canvas); border-radius: var(--r-md); isolation: isolate; }
-.jj .ph-seg > button { position: relative; z-index: 2; min-width: 0; display: grid; place-items: center; padding: 0 4px; font-size: var(--fsp-body); font-weight: 600; line-height: 1; white-space: nowrap; text-align: center; color: var(--muted); background: transparent; border-radius: var(--r-sm); transition: background 120ms, color 120ms; }
-.jj .ph-seg > button:active:not([aria-pressed='true']) { background: var(--surface-soft); }
-.jj .ph-seg > button[aria-pressed='true'] { color: var(--on-select); font-weight: 700; background: transparent; }
+/* ── 나눔 단추 48: 판 길 안에 칸, 고른 칸으로 --accent-soft 면(아래 2 px 틸 표시 줄)이 미끄러져 온다. --n 칸 수 · --i 고른 칸.
+   칸(누르는 곳)은 길 높이 48 을 다 쓰고, 고른 면만 --seg-pad 만큼 안으로 들어가 보인다 ── */
+.jj .ph-seg { --seg-pad: 3px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; height: 48px; padding: 0; background: var(--panel); border-radius: var(--r-btn); box-shadow: var(--ph-line); isolation: isolate; }
+.jj .ph-seg > button { position: relative; z-index: 2; min-width: 0; display: grid; place-items: center; padding: 0 4px; font-size: var(--fsp-body); font-weight: 600; line-height: 1; white-space: nowrap; text-align: center; color: var(--muted); background: transparent; border-radius: 9px; transition: background 120ms, color 120ms; }
+.jj .ph-seg > button:active:not([aria-pressed='true']) { color: var(--body); }
+.jj .ph-seg > button[aria-pressed='true'] { color: var(--ink); background: transparent; }
 .jj .ph-seg .bub {
   position: absolute;
   z-index: 1;
   left: var(--seg-pad);
   top: var(--seg-pad);
-  width: calc((100% - 2 * var(--seg-pad) - (var(--n) - 1) * var(--seg-gap)) / var(--n));
+  width: calc(100% / var(--n) - 2 * var(--seg-pad));
   height: calc(100% - 2 * var(--seg-pad));
-  background: var(--select);
-  border-radius: var(--r-sm);
-  transform: translateX(calc(var(--i) * (100% + var(--seg-gap))));
+  background: var(--accent-soft);
+  border-radius: 9px;
+  overflow: hidden;
+  transform: translateX(calc(var(--i) * (100% + 2 * var(--seg-pad))));
   transition: transform 200ms var(--ease);
   pointer-events: none;
 }
-.jj .ph-seg.sm { height: 44px; }
-.jj .ph-seg.sm > button { font-size: var(--fsp-label); }
-.jj .ph-seg.sm .bub { border-radius: 8px; }
-/* 무대 안 보기 알약 (3D · 위에서 · 키트): 높이 48 어두운 알약, 칸마다 64 */
-.jj .ph-seg.pill { height: 48px; grid-auto-columns: 64px; border-radius: var(--r-full); }
+.jj .ph-seg .bub::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
+.jj .ph-seg.sm { --seg-pad: 5px; }
+.jj .ph-seg.sm > button { font-size: 13px; }
+/* 무대 안 보기 알약 (3D · 위에서 · 키트): 높이 48 (누를 것 바닥) 어두운 칩 면, 고른 칸 = --accent-soft + 강조 글 */
+.jj .ph-seg.pill { --seg-pad: 4px; height: 48px; grid-auto-columns: 64px; border-radius: var(--r-full); }
 .jj .ph-seg.pill > button { font-size: var(--fsp-label); border-radius: var(--r-full); }
+.jj .ph-seg.pill > button[aria-pressed='true'] { color: var(--accent-text); }
 .jj .ph-seg.pill .bub { border-radius: var(--r-full); }
+.jj .ph-seg.pill .bub::after { display: none; }
 
-/* ── 증감: --canvas 판 안에 버금 단추 둘 ── */
-.jj .ph-stepper { display: flex; align-items: stretch; gap: 4px; height: 64px; padding: 4px; background: var(--canvas); border-radius: var(--r-md); }
-.jj .ph-stepper > button { width: 64px; flex: none; display: grid; place-items: center; color: var(--ink); background: var(--surface-strong); border-radius: var(--r-sm); transition: background 120ms; }
+/* ── 증감 56: 판 안에 버금 단추 둘 ── */
+.jj .ph-stepper { display: flex; align-items: stretch; gap: 4px; height: 56px; padding: 4px; background: var(--panel); border-radius: var(--r-btn); box-shadow: var(--ph-line); }
+.jj .ph-stepper > button { width: 56px; flex: none; display: grid; place-items: center; color: var(--ink); background: var(--surface-strong); border-radius: var(--r-sm); transition: background 120ms; }
+.jj .ph-stepper > button svg { width: 20px; height: 20px; }
 .jj .ph-stepper > button:active { background: var(--surface-press); }
 .jj .ph-stepper > button:disabled { color: var(--muted); background: var(--surface-soft); cursor: default; }
 .jj .ph-stepper .val { flex: 1; align-self: center; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
-.jj .ph-stepper .val small { font-size: var(--fsp-body); font-weight: 400; color: var(--muted); }
+.jj .ph-stepper .val small { font-size: var(--fsp-caption); font-weight: 400; color: var(--muted); }
 
-/* ── 켜기 줄: 꺼짐 = --surface-strong 길 + --muted 손잡이 왼쪽 · 켜짐 = --select 길 + 잉크 손잡이 오른쪽 (자리와 색 둘 다로 구분) ── */
-.jj .ph-toggle-row { width: 100%; min-height: 72px; display: flex; align-items: center; gap: 16px; padding: 14px 16px; background-color: transparent; transition: background-color 120ms; }
+/* ── 켜기 줄: 꺼짐 = --surface-strong 길 + --muted 손잡이 왼쪽 · 켜짐 = --accent-soft 길 + 틸 손잡이 오른쪽 (자리와 색 둘 다로 구분) ── */
+.jj .ph-toggle-row { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 14px; padding: 12px 16px; background-color: transparent; transition: background-color 120ms; }
 .jj .ph-toggle-row:active { background-color: var(--surface-soft); }
-.jj .ph-toggle-row .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.jj .ph-toggle { position: relative; width: 52px; height: 32px; flex: none; background: var(--surface-strong); border-radius: var(--r-full); transition: background 150ms; }
-.jj .ph-toggle i { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; background: var(--muted); border-radius: var(--r-full); transition: transform 150ms var(--ease); }
-.jj .ph-toggle.on { background: var(--select); }
-.jj .ph-toggle.on i { transform: translateX(20px); background: var(--on-select); }
+.jj .ph-toggle-row .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.jj .ph-toggle { position: relative; width: 46px; height: 28px; flex: none; background: var(--surface-strong); border-radius: var(--r-full); transition: background 150ms; }
+.jj .ph-toggle i { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; background: var(--muted); border-radius: var(--r-full); transition: transform 150ms var(--ease); }
+.jj .ph-toggle.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-hair); }
+.jj .ph-toggle.on i { transform: translateX(18px); background: var(--accent); }
 
-/* ── 칸 (폰 2 × 2, 높이 96): [이름 label --muted ……… 상태 점 8] / [값 value 잉크 + 단위 ……… 기준 caption] / [막대 4]. 면은 언제나 --canvas ── */
-.jj .ph-tiles { display: grid; gap: 8px; margin-top: 8px; padding: 0 16px; }
-.jj .ph-tiles.c2 { grid-template-columns: 1fr 1fr; }
-.jj .ph-tiles.c3 { grid-template-columns: 1fr 1fr 1fr; }
-.jj .ph-tile { --c: var(--muted-soft); --ct: var(--ink); position: relative; min-width: 0; min-height: 96px; display: flex; flex-direction: column; justify-content: flex-start; gap: 8px; padding: 14px 16px 14px; text-align: left; background: var(--canvas); border-radius: var(--r-lg); transition: background 120ms; overflow: hidden; }
-.jj .ph-tile.tone-green { --c: var(--ok); --ct: var(--ok-t); }
-.jj .ph-tile.tone-orange { --c: var(--alert); --ct: var(--alert-t); }
-.jj .ph-tile.tone-red { --c: var(--bad); --ct: var(--bad-t); }
-.jj .ph-tile.tone-grey { --c: var(--none); --ct: var(--none-t); }
-.jj .ph-tiles.c3 .ph-tile { min-height: 96px; padding: 12px 12px 14px; }
-.jj button.ph-tile:active { background: var(--surface-soft); }
-.jj .ph-tile .hd { display: flex; align-items: center; gap: 6px; min-width: 0; height: 16px; color: var(--muted); }
-.jj .ph-tile .hd svg { display: none; }
-.jj .ph-tile .nm { min-width: 0; font-size: var(--fsp-label); font-weight: 600; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jj .ph-tile .hd .dot { flex: none; width: 8px; height: 8px; margin-left: auto; background: var(--c); border-radius: var(--r-full); }
-.jj .ph-tile .val { display: flex; align-items: baseline; gap: 3px; min-width: 0; white-space: nowrap; }
-.jj .ph-tile .val b { flex: none; font-size: var(--fsp-value); font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
-.jj .ph-tile .val b.word { flex: 0 1 auto; min-width: 0; font-size: var(--fsp-heading); line-height: 1.25; letter-spacing: -0.01em; white-space: normal; }
-.jj .ph-tile .val small { min-width: 0; font-size: var(--fsp-caption); font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.jj .ph-tile .val:has(.ft) small { flex: none; }
-.jj .ph-tile .val .ft { flex: none; margin-left: auto; padding-left: 8px; font-size: var(--fsp-caption); line-height: 1.2; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.jj .ph-tile .bar { position: relative; flex: none; height: 4px; margin-top: auto; background: var(--surface-strong); border-radius: 2px; }
-.jj .ph-tile .bar:empty { visibility: hidden; }
-.jj .ph-tile .bar i { position: absolute; inset: 0; background: var(--c); border-radius: 2px; transform-origin: left center; transition: transform 250ms var(--ease); }
-.jj .ph-tile .bar s { position: absolute; top: -4px; width: 2px; height: 12px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
-/* 막대 자리 caption 한 줄 (막대 없는 칸): 같은 줄 막대 칸과 바닥선이 맞는다 */
-.jj .ph-tile .cap { flex: none; min-width: 0; margin-top: auto; font-size: var(--fsp-caption); font-weight: 400; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.jj .ph-tile:has(> .cap) { padding-bottom: 12px; }
-/* 셋 칸: 상태 점은 오른쪽 위 구석, 좁은 칸이라 이름 오른쪽을 비운다 */
-.jj .ph-tiles.c3 .ph-tile .hd .dot { position: absolute; right: 12px; top: 16px; margin: 0; }
-.jj .ph-tiles.c3 .ph-tile .nm { padding-right: 14px; }
-.jj .ph-tiles.c3 .ph-tile .val b, .jj .ph-tiles.c3 .ph-tile .val b.word { font-size: var(--fsp-value); }
-/* 할 일 목록 뒤에 오는 칸 줄 (사건 자세히) */
-.jj .ph-tiles.gap-top { margin-top: 12px; }
+/* ── 지표 줄 (§11.7 .ph-kpis): 판 하나를 칸으로 나눈다 (칸 사이 1 px 선). 넷 = 2 x 2 (칸 60), 셋 = 한 줄 (칸 68).
+   칸 = [아이콘 14 --accent + 이름 12 / 600 --muted + 상태 점 8] / [값 18 / 700 잉크 + 단위 12 ……… 기준 글 12] / [막대 3 (상태 색, 기준 눈금 --accent-2)].
+   값은 언제나 잉크 (상태 색 글자 없음). 넷을 한 줄에 세우면 기준 글이 잘려서 폰은 2 x 2 로 둔다 ── */
+.jj .ph-kpis { display: grid; margin: 8px 16px 0; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ph-line); overflow: hidden; }
+.jj .ph-kpis.c1 { grid-template-columns: minmax(0, 1fr); }
+.jj .ph-kpis.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.jj .ph-kpis.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.jj .ph-kpis.gap-top { margin-top: 12px; }
+.jj .ph-kpi { --c: var(--muted-soft); position: relative; min-width: 0; height: 64px; display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; padding: 10px 12px 0; text-align: left; background-color: transparent; transition: background-color 120ms; }
+.jj .ph-kpis.c3 .ph-kpi { height: 68px; padding: 9px 12px 0; }
+/* 2 x 2 (3D 확인 · 사건 · 운송장): 칸 60. 두 줄 120 이라 무대 300 안팎 아래로 '눈으로 확인' 첫 줄까지 첫 화면에 든다 */
+.jj .ph-kpis.c2 .ph-kpi { height: 60px; padding-top: 8px; }
+/* 기준 글 · 막대 없는 셋 칸 (기록 요약): 낮게 */
+.jj .ph-kpis.c3.flat .ph-kpi { height: 58px; }
+.jj .ph-kpi.tone-green { --c: var(--ok); }
+.jj .ph-kpi.tone-orange { --c: var(--alert); }
+.jj .ph-kpi.tone-red { --c: var(--bad); }
+.jj .ph-kpi.tone-grey { --c: var(--none); }
+.jj button.ph-kpi:active { background-color: var(--surface-soft); }
+/* 칸 사이 선: 세로는 칸 왼쪽, 가로(2 x 2 의 둘째 줄)는 칸 위 */
+.jj .ph-kpis.c2 > :nth-child(even)::before, .jj .ph-kpis.c3 > * + *::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 1px; background: var(--hairline-strong); }
+.jj .ph-kpis.c2 > :nth-child(n + 3)::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--hairline-strong); }
+.jj .ph-kpis.c2 > :nth-child(odd):nth-child(n + 3)::after { left: 12px; }
+.jj .ph-kpis.c2 > :nth-child(even):nth-child(n + 3)::after { right: 12px; }
+.jj .ph-kpi .hd { display: flex; align-items: center; gap: 5px; min-width: 0; height: 16px; color: var(--accent); }
+.jj .ph-kpi .hd svg { flex: none; width: 14px; height: 14px; }
+.jj .ph-kpi .nm { min-width: 0; font-size: var(--fsp-label); font-weight: 600; line-height: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jj .ph-kpi .hd .dot { flex: none; width: 8px; height: 8px; margin-left: 1px; background: var(--c); border-radius: var(--r-full); }
+.jj .ph-kpi .val { display: flex; align-items: baseline; gap: 3px; min-width: 0; height: 22px; white-space: nowrap; }
+.jj .ph-kpi .val b { flex: none; font-size: var(--fsp-kpi); font-weight: 700; line-height: 22px; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.jj .ph-kpi .val b.word { flex: 0 1 auto; min-width: 0; font-size: var(--fsp-heading); letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; }
+.jj .ph-kpi .val small { flex: none; font-size: var(--fsp-caption); font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.jj .ph-kpi .val .cap { flex: 0 1 auto; min-width: 0; margin-left: auto; padding-left: 6px; font-size: var(--fsp-caption); font-weight: 400; line-height: 16px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.jj .ph-kpi .val .cap.ref { flex: none; color: var(--accent-2); }
+/* 셋 칸(좁은 칸)에서 막대가 없으면 기준 글은 값 아래 줄로 */
+.jj .ph-kpis.c3 .ph-kpi:not(:has(> .bar)) .val { flex-wrap: wrap; height: auto; }
+.jj .ph-kpis.c3 .ph-kpi:not(:has(> .bar)) .val .cap { flex: 0 0 100%; margin: -1px 0 0; padding: 0; }
+.jj .ph-kpi .bar { position: relative; flex: none; height: 3px; margin-top: 3px; background: var(--track); border-radius: 2px; }
+.jj .ph-kpi .bar i { position: absolute; inset: 0; background: var(--c); border-radius: 2px; transform-origin: left center; transition: transform 250ms var(--ease); }
+.jj .ph-kpi .bar s { position: absolute; top: -3px; width: 2px; height: 9px; margin-left: -1px; background: var(--accent-2); border-radius: 1px; }
 
 /* ── 상태 칩: 우물 면 + 점 + 잉크 글. solid = 꽉 찬 상태 면 ('사건' 하나만) ── */
-.jj .ph-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px 0 8px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; color: var(--ink); background: var(--surface-soft); border-radius: var(--r-xs); }
+.jj .ph-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px 0 7px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; color: var(--ink); background: var(--surface-soft); border-radius: var(--r-xs); }
 .jj .ph-chip::before { content: ''; flex: none; width: 8px; height: 8px; background: var(--c); border-radius: var(--r-full); }
-.jj .ph-chip.neutral { color: var(--body); background: var(--surface-strong); }
+/* 지금 살아 있는 것 ('운행 중' · '실시간'): --accent-soft 면 + 강조 글 */
+.jj .ph-chip.neutral { padding: 0 8px; color: var(--accent-text); background: var(--accent-soft); }
 .jj .ph-chip.neutral::before { display: none; }
 .jj .ph-chip.solid { color: var(--ct); background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, transparent); }
 .jj .ph-chip.solid::before { display: none; }
 /* 점 10 + 상태 글자 (면 없음). 글자는 잉크, 색은 점만 */
 .jj .ph-stat { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; white-space: nowrap; color: var(--ink); }
-.jj .ph-stat > i { flex: none; width: 10px; height: 10px; background: var(--c); border-radius: var(--r-full); }
+.jj .ph-stat > i { flex: none; width: 8px; height: 8px; background: var(--c); border-radius: var(--r-full); }
 
-/* ── 목록 줄 ── */
-.jj .ph-row { width: 100%; min-height: 72px; display: flex; align-items: center; gap: 14px; padding: 12px 16px; text-align: left; background-color: transparent; transition: background-color 120ms; }
-.jj .ph-row.one { min-height: 56px; padding-top: 8px; padding-bottom: 8px; }
+/* ── 목록 줄 60: [상태 점 8 | 둥근 아이콘 36][제목 15 / 600 + 보조 12][값 · ›] ── */
+.jj .ph-row { width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; text-align: left; background-color: transparent; transition: background-color 120ms; }
+.jj .ph-row.one { min-height: 52px; padding-top: 6px; padding-bottom: 6px; }
 .jj button.ph-row:active, .jj a.ph-row:active { background-color: var(--surface-soft); }
-.jj .ph-row .sq { width: 10px; height: 10px; flex: none; background: var(--c); border-radius: var(--r-full); }
+.jj .ph-row .sq { width: 8px; height: 8px; flex: none; background: var(--c); border-radius: var(--r-full); }
 .jj .ph-row .sq.none { background: var(--muted-soft); }
-.jj .ph-row .ic { flex: none; width: 44px; height: 44px; color: var(--body); display: grid; place-items: center; background: var(--surface-soft); border-radius: var(--r-full); }
-.jj .ph-row .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.jj .ph-row .tx b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.3; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* 둥근 아이콘: 1 px 강조 테두리 + 틸 선 아이콘 (참고 그림의 작은 둥근 아이콘). 신고 전화 줄은 --accent-soft 면 */
+.jj .ph-row .ic { flex: none; width: 36px; height: 36px; color: var(--accent); display: grid; place-items: center; background: transparent; border-radius: var(--r-full); box-shadow: inset 0 0 0 1px var(--accent-hair); }
+.jj .ph-row .ic svg { width: 18px; height: 18px; }
+.jj .ph-calls .ph-row .ic { background: var(--accent-soft); box-shadow: none; }
+/* 운전 중 잠금에는 강조 색이 없다 */
+.jj .ph-lock .ph-row .ic { color: var(--body); background: var(--surface-soft); box-shadow: none; }
+.jj .ph-row .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.jj .ph-row .tx b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.35; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .jj .ph-row .tx b.wrap { white-space: normal; }
 .jj .ph-row .tx span { font-size: var(--fsp-caption); font-weight: 400; line-height: 1.4; color: var(--muted); font-variant-numeric: tabular-nums; }
 .jj .ph-row .tx span.one { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 제목 아래 칩 한 줄 ('운행 중') */
 .jj .ph-row .tx > .sub { display: flex; margin: 3px 0 2px; font-style: normal; }
-.jj .ph-row .tx > .sub .ph-chip { height: 24px; padding: 0 8px; font-size: 12px; font-weight: 600; line-height: 1; color: var(--body); }
+.jj .ph-row .tx > .sub .ph-chip { height: 22px; padding: 0 7px; font-size: 12px; font-weight: 600; line-height: 1; }
 .jj .ph-row .vl { flex: none; font-size: var(--fsp-body); font-weight: 600; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .jj .ph-row .vl.blue { color: var(--primary-text); }
-.jj .ph-row .chev { flex: none; color: var(--muted-soft); }
-.jj .ph-row .radio { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border: 2px solid var(--muted-soft); border-radius: var(--r-full); color: transparent; }
-.jj .ph-row[aria-checked='true'] .radio { color: var(--ink); background: transparent; border-color: var(--ink); }
+.jj .ph-row .chev { flex: none; width: 18px; height: 18px; color: var(--muted-soft); }
+.jj .ph-row .radio { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border: 1.5px solid var(--muted-soft); border-radius: var(--r-full); color: transparent; }
+.jj .ph-row[aria-checked='true'] .radio { color: var(--accent); background: transparent; border-color: var(--accent); }
 
 /* ── 시간 줄 (기록): [시각][점 + 세로 이음선][제목 + 내용]. 이음선은 --surface-strong (밝은 선 없음) ── */
 .jj .ph-list.tl { padding: 6px 0; }
@@ -296,64 +336,62 @@
 .jj .ph-time .tx b { font-size: var(--fsp-body); font-weight: 600; line-height: 1.35; color: var(--ink); }
 .jj .ph-time .tx span { font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); word-break: keep-all; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 
-/* ── 사건 카드 (목록 안, 358 × 80) ── */
-.jj .ph-ecard { position: relative; width: 100%; height: 80px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 12px 0 16px; text-align: left; background: var(--canvas); border-radius: var(--r-lg); transition: background 120ms; }
+/* ── 사건 카드 (목록 안, 358 × 64): [표지 32][제목 15 / 600 + 보조 12][›] ── */
+.jj .ph-ecard { position: relative; width: 100%; height: 64px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 14px; text-align: left; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ph-line); transition: background 120ms; }
 .jj .ph-ecard:active { background: var(--surface-soft); }
-.jj .ph-ecard .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.jj .ph-ecard .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .jj .ph-ecard .tx b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.3; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jj .ph-ecard .tx span { font-size: var(--fsp-caption); line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.jj .ph-ecard .unread { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; background: var(--bad); border-radius: var(--r-full); }
-.jj .ph-ecard .chev { flex: none; color: var(--muted-soft); }
+.jj .ph-ecard .unread { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; background: var(--bad); border-radius: var(--r-full); }
+.jj .ph-ecard .chev { flex: none; width: 18px; height: 18px; color: var(--muted-soft); }
 
 /* ── 위 알림 (heads-up) 358 × 72: 상태 표시줄 · 앱 바 자리 위에 뜬 층. --surface-soft + --e-2 (납작한 --canvas 카드와 다른 층), 테두리 · 꺾쇠 · 머리 줄 없음.
    [경고등 32][제목 heading 한 줄 + 시각 · 장소 caption 한 줄][× 20, 누르는 곳 44]. 카드 전체를 누르면 사건으로. 화면 내용은 밀지 않는다 ── */
-.jj .ph-notif { position: absolute; left: 12px; right: 12px; z-index: 30; height: 72px; display: flex; align-items: center; background: var(--surface-strong); border-radius: 16px; box-shadow: var(--e-2); overflow: hidden; }
+.jj .ph-notif { position: absolute; left: 12px; right: 12px; z-index: 30; height: 64px; display: flex; align-items: center; background: var(--surface-strong); border-radius: 14px; box-shadow: var(--e-2); overflow: hidden; }
 /* 시스템 알림 층: 상태 표시줄 · 앱 바 자리를 어둡게 덮는 그늘 (알림 카드가 화면 위에 떠 보이게). 누르기는 막지 않는다 */
 .jj .ph-notif-scrim { position: absolute; left: 0; right: 0; top: 0; z-index: 29; height: 132px; background: linear-gradient(180deg, rgba(0, 0, 0, 0.82) 0, rgba(0, 0, 0, 0.6) 55%, transparent 100%); pointer-events: none; animation: ph-fade var(--dur-2, 200ms) var(--ease-std, ease) both; }
-.jj .ph-notif .go { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 16px; text-align: left; border-radius: 16px 0 0 16px; transition: background 120ms; }
+.jj .ph-notif .go { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 4px 0 14px; text-align: left; border-radius: 14px 0 0 14px; transition: background 120ms; }
 .jj .ph-notif .go:active { background: var(--surface-strong); transform: none; }
 .jj .ph-notif .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .jj .ph-notif .tx b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.3; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jj .ph-notif .tx span { font-size: var(--fsp-caption); line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .jj .ph-notif .x { width: 44px; height: 44px; margin-right: 8px; flex: none; display: grid; place-items: center; color: var(--muted); border-radius: var(--r-full); transition: background 120ms; }
 .jj .ph-notif .x:active { background: var(--surface-strong); }
-/* 알림이 떠 있는 동안: 알림이 상태 표시줄 · 앱 바 자리를 덮고 (앱 바 글은 숨김), 판정 카드부터 아래는 그대로 (밀지 않는다).
-   같은 사건을 말하는 3D 확인 화면에서는 판정 카드 · 무대 caption 을 숨긴다: 한 화면에 한 문장 (알림이 판정 카드 노릇) */
+/* 알림이 떠 있는 동안: 알림이 상태 표시줄 · 앱 바 자리를 덮고 (앱 바 글은 숨김), 판정 줄부터 아래는 그대로 (밀지 않는다).
+   같은 사건을 말하는 3D 확인 화면에서는 판정 줄을 숨긴다: 한 화면에 한 문장 (알림이 판정 줄 노릇) */
 .jj.ph-root[data-notif] .ph-main .ph-appbar { visibility: hidden; }
 .jj.ph-root[data-notif-same] .ph-main .ph-banner:not(.mini) { display: none; }
-.jj.ph-root[data-notif-same] .ph-main .ph-stage-cap { visibility: hidden; }
 
-/* ── 할 일 줄: [체크 칸][순서 배지][제목 + caption] ── */
-.jj .ph-check { width: 100%; min-height: 60px; display: flex; align-items: center; gap: 14px; padding: 10px 16px; text-align: left; background-color: transparent; transition: background-color 120ms; }
+/* ── 할 일 줄 60: [체크 칸 24][순서 배지 24][제목 15 / 600 + 보조 12] ── */
+.jj .ph-check { width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 8px 16px; text-align: left; background-color: transparent; transition: background-color 120ms; }
 .jj .ph-check .box { order: -1; }
-.jj .ph-check .badge { margin-left: -2px; }
 .jj .ph-check[aria-checked='true'] .tx b { color: var(--muted); }
-.jj .ph-check.cap { min-height: 72px; }
 .jj button.ph-check:active { background-color: var(--surface-soft); }
-/* 순서 배지 = --select 동그라미 + 잉크 숫자 */
-.jj .ph-check .badge { width: 28px; height: 28px; flex: none; display: grid; place-items: center; font-size: var(--fsp-label); font-weight: 700; line-height: 1; color: var(--on-select); background: var(--select); border-radius: var(--r-full); font-variant-numeric: tabular-nums; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
-.jj .ph-check[aria-checked='true'] .badge { color: var(--muted); background: var(--surface-strong); }
-.jj .ph-check .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.jj .ph-check .tx b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.3; color: var(--ink); }
+/* 순서 배지 = 1 px 강조 선 동그라미 + 잉크 숫자 (3D 안 순서 배지와 같은 말씨) */
+.jj .ph-check .badge { width: 24px; height: 24px; flex: none; display: grid; place-items: center; font-size: 12px; font-weight: 600; line-height: 1; color: var(--ink); background: transparent; border-radius: var(--r-full); box-shadow: inset 0 0 0 1px var(--accent-line); font-variant-numeric: tabular-nums; transition: box-shadow var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
+.jj .ph-check[aria-checked='true'] .badge { color: var(--muted); box-shadow: inset 0 0 0 1px var(--hairline-strong); }
+.jj .ph-check .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.jj .ph-check .tx b { font-size: var(--fsp-heading); font-weight: 600; line-height: 1.35; color: var(--ink); }
 .jj .ph-check .tx span { font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); font-variant-numeric: tabular-nums; }
-.jj .ph-check .box { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border: 2px solid var(--muted-soft); border-radius: 8px; color: transparent; background: transparent; transition: background 120ms, border-color 120ms; }
-/* 체크함 = 한 단계 밝은 면 + 잉크 ✓ (밝은 흰 네모 금지) */
-.jj .ph-check[aria-checked='true'] .box { color: var(--ink); background: var(--surface-press); border-color: var(--surface-press); }
+.jj .ph-check .box { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border: 1.5px solid var(--muted-soft); border-radius: 6px; color: transparent; background: transparent; transition: background 120ms, border-color 120ms; }
+.jj .ph-check .box svg { width: 16px; height: 16px; }
+/* 체크함 = 강조 면 + 어두운 ✓ */
+.jj .ph-check[aria-checked='true'] .box { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
 .jj .ph-check.auto .box { border-style: dashed; }
 .jj .ph-check.auto[aria-checked='true'] .box { border-style: solid; }
 
-/* ── 3D 무대: 폭 가득 268 (짧은 무대 240). 카드 · 모서리 · 테두리 없음, 바탕(--bg) 위에 바로. 스튜디오 빛 웅덩이는 three/bed.css (.bv::before).
-   무대 안: 왼쪽 위 caption 한 줄 (정차 · 키트 · 사건 시각), 오른쪽 아래 보기 알약 (장면 위에 뜬다) ── */
+/* ── 3D 무대: 폭 가득 300 (짧은 무대 250). 카드 · 모서리 · 테두리 없음, 바탕(--bg) 위에 바로. 격자 바닥 · 발판 선 · 정보 칩은 three/ 가 그린다.
+   무대 안에는 글이 없다 (§11.6: 보기를 바꾸면 바뀌는 것은 3D 와 칩뿐). 오른쪽 아래 보기 알약만 장면 위에 뜬다 ── */
 .jj .ph-stage-wrap { flex: none; }
 .jj .ph-stage {
   position: relative;
   flex: none;
-  height: 268px;
+  height: 300px;
   margin: 0;
   overflow: hidden;
   background: var(--bg);
 }
-.jj .ph-stage.h240 { height: 240px; }
+.jj .ph-stage.h240 { height: 250px; }
 /* 그림(캔버스) 가장자리를 바탕으로 녹인다 (가까이 본 장면이 칼처럼 잘리지 않게). 꼬리표 층(.bv-layer)은 녹이지 않는다 */
 .jj .ph-stage .bv-host {
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%), linear-gradient(180deg, transparent 0, #000 20px, #000 calc(100% - 28px), transparent 100%);
@@ -362,31 +400,27 @@
   mask-composite: intersect;
 }
 .jj .ph-stage .bv-name { display: none; }
-.jj .ph-stage-wrap + .ph-list { margin-top: 12px; }
-.jj .ph-stage-cap { position: absolute; z-index: 3; left: 20px; right: 20px; top: 10px; margin: 0; font-size: var(--fsp-caption); line-height: 1.4; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; pointer-events: none; }
-.jj .ph-stage-cap b { font-weight: 600; color: var(--body); }
+/* 폰 무대의 정보 칩은 한 단 좁게 (최소 폭 120 -> 100): 키 큰 짐 · 적재함 가운데 짐에서도 칩이 왼쪽 위 빈 바닥에 들어가 옆문을 덮지 않는다 */
+.jj .ph-stage .bv[data-size='sm'] { --bv-imin: 100px; }
+.jj .ph-stage-wrap + .ph-list { margin-top: 8px; }
 /* 보기 알약 칸: 무대 오른쪽 아래, 무대 높이의 30 % 인 투명 칸 (누르기는 알약만). 장면 맞춤(three/bed-scene)은 무대 높이의 20 % 넘는 칸을
    아래 띠로 비우지 않으므로 적재함이 무대 높이를 다 쓰고, 3D 꼬리표는 이 칸을 피한다 */
-.jj .ph-stage-ctl { position: absolute; z-index: 3; right: 8px; bottom: 8px; height: 30%; display: flex; align-items: flex-end; pointer-events: none; }
+.jj .ph-stage-ctl { position: absolute; z-index: 3; right: 10px; bottom: 8px; height: 30%; display: flex; align-items: flex-end; pointer-events: none; }
 .jj .ph-stage-ctl > .in { pointer-events: auto; }
+/* 스크롤로 무대가 거의 다 올라가면 (PhoneApp 이 data-stage-off 를 붙인다) 알약 · 칩을 숨긴다 */
+.jj .ph-stage-ctl { transition: opacity 120ms var(--ease-std, ease); }
+.jj .ph-scroll[data-stage-off] .ph-stage-ctl { opacity: 0; visibility: hidden; transition: opacity 120ms var(--ease-std, ease), visibility 0s linear 120ms; }
+.jj .ph-scroll[data-stage-off] .ph-stage .bv-layer { opacity: 0 !important; }
 /* 위에서 보기: 적재함이 무대 높이를 꽉 채워 알약이 그 오른쪽 아래 모서리를 덮으므로, 이 보기에서만 알약 높이 칸으로 (장면이 알약 위로 맞춘다) */
 .jj .ph-stage[data-view='top'] .ph-stage-ctl { height: auto; }
-/* 보기 알약(48)은 무대 안 오른쪽 아래 장면 위에 떠 있다: 장면은 무대 높이 · 폭 가득 (적재함이 폭의 3/4 쯤).
-   위에서 보기도 장면 칸을 줄이지 않는다. caption 이 있을 때만 그 줄 아래부터 */
-.jj .ph-stage[data-view='top']:has(> .ph-stage-cap) > .bv { top: 26px; }
-/* 알약 칸 52 (누르는 곳 52 × 40): 172 폭이라 적재함 앞 모서리(오른쪽 아래 비탈)에 걸리지 않는다 */
-.jj .ph-stage-ctl .ph-seg.pill { grid-auto-columns: 52px; }
-.jj .ph-stage-ctl .ph-seg.pill { background: color-mix(in srgb, var(--surface-soft) 94%, transparent); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
-/* 무대 오른쪽 아래 작은 꼬리표 (흐린 상자 = 출발 때 자리): 3D 꼬리표와 같은 어두운 알약, 높이 28 */
-.jj .ph-stage-legend { position: absolute; z-index: 3; right: 16px; bottom: 10px; pointer-events: none; }
-.jj .ph-legend { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; font-size: var(--fsp-label); font-weight: 600; line-height: 1; color: var(--body); background: var(--surface-soft); border-radius: var(--r-full); white-space: nowrap; }
-.jj .ph-legend > i { flex: none; width: 12px; height: 10px; border: 1.5px dashed var(--muted); border-radius: 2px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+/* 알약 칸 52 (누르는 곳 52 × 48): 3D 정보 칩과 같은 어두운 반투명 면 + 1 px 선 (그림자 없음) */
+.jj .ph-stage-ctl .ph-seg.pill { grid-auto-columns: 52px; background: var(--chip-bg); box-shadow: inset 0 0 0 1px var(--chip-line); }
 .jj .ph-stage .wait { position: absolute; inset: 0; display: grid; place-items: center; font-size: var(--fsp-caption); color: var(--muted); }
 .jj .ph-stage .msg { position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); text-align: center; font-size: var(--fsp-body); font-weight: 600; color: var(--ink); }
 .jj .ph-stage .msg span { display: block; margin-top: 6px; font-size: var(--fsp-caption); font-weight: 400; color: var(--muted); }
 
 /* ── 사진: 비었을 때는 우물(--surface-soft) 면, 테두리 없음 ── */
-.jj .ph-photo { position: relative; width: 100%; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; overflow: hidden; text-align: center; color: var(--muted); background: var(--canvas); border-radius: var(--r-lg); transition: background 120ms; }
+.jj .ph-photo { position: relative; width: 100%; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; overflow: hidden; text-align: center; color: var(--muted); background: var(--panel); border-radius: var(--r-panel); transition: background 120ms; }
 .jj button.ph-photo:active { background: var(--surface-soft); }
 .jj .ph-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .jj .ph-photo b { font-size: var(--fsp-heading); font-weight: 600; color: var(--ink); }
@@ -395,7 +429,8 @@
 .jj .ph-photo .cap { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: var(--fsp-caption); font-weight: 600; color: var(--ink); background: color-mix(in srgb, var(--bg) 88%, transparent); }
 .jj .ph-photo .cap span { color: var(--ink); }
 /* 빈 사진 칸: 평평한 우물 한 장 (그라데이션 · 테두리 없음), 아이콘 + 말이 늘 다 보이는 높이 */
-.jj .ph-photo.empty { height: 136px; background: var(--surface-soft); }
+.jj .ph-photo.empty { height: 104px; background: var(--panel); box-shadow: var(--ph-line); }
+.jj .ph-photo.empty > svg { width: 24px; height: 24px; color: var(--accent); }
 .jj button.ph-photo.empty:active { background: var(--surface-strong); }
 /* 시트 안 '계산 방법' 줄: 누르면 아래로 펼친다 */
 .jj .ph-how { margin: 12px 16px 0; background: var(--surface-soft); border-radius: var(--r-md); overflow: hidden; }
@@ -407,40 +442,47 @@
 .jj .ph-pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .jj .ph-pgrid > * { position: relative; aspect-ratio: 1 / 1; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: var(--fsp-label); font-weight: 600; color: var(--ink); background: var(--canvas); border-radius: var(--r-md); }
 .jj .ph-pgrid > button:active { background: var(--surface-soft); }
+.jj .ph-pgrid > button { box-shadow: var(--ph-line); }
+.jj .ph-pgrid > button > svg { width: 24px; height: 24px; color: var(--accent); }
 .jj .ph-pgrid img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .jj .ph-pgrid > .pad { background: transparent; }
 .jj .ph-pgrid .tag { position: absolute; left: 4px; bottom: 4px; height: 22px; display: flex; align-items: center; padding: 0 6px; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--scrim); border-radius: 6px; font-variant-numeric: tabular-nums; }
 
 /* ── 허브 셈 칸 · 트럭 줄 ── */
-/* 셈 칸: 카드 하나를 넷으로 (선 없이). [점 + 숫자 잉크] / [이름 label]. 거른 칸 = --select 면 + 잉크 */
-.jj .ph-counts { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 4px 16px 4px; padding: 4px; background: var(--canvas); border-radius: var(--r-lg); }
-.jj .ph-count { position: relative; min-width: 0; height: 80px; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 0 12px; text-align: left; border-radius: var(--r-md); transition: background 120ms, color 120ms; }
+/* 셈 칸 = 지표 줄 (판 하나를 넷으로, 칸 사이 1 px 선). [상태 점 8 + 숫자 18 잉크] / [이름 12]. 거른 칸 = --accent-soft 면 + 아래 2 px 표시 줄.
+   그 아래 4 px 비율 막대 하나 (.ph-ratio: 상태별 대수 비율, 각 상태 색, 사이 2 px) */
+.jj .ph-counts { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); margin: 4px 16px 0; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ph-line); overflow: hidden; }
+.jj .ph-count { position: relative; min-width: 0; height: 60px; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 0 12px; text-align: left; transition: background 120ms, color 120ms; }
+.jj .ph-count + .ph-count::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 1px; background: var(--hairline-strong); }
 .jj .ph-count:active { background: var(--surface-soft); }
-.jj .ph-count > b { display: flex; align-items: center; gap: 7px; font-size: var(--fsp-value); font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.jj .ph-count > b { display: flex; align-items: center; gap: 7px; font-size: var(--fsp-kpi); font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
 .jj .ph-count > b > i { flex: none; width: 8px; height: 8px; background: var(--c); border-radius: var(--r-full); }
 .jj .ph-count > span { font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jj .ph-count[aria-pressed='true'] { background: var(--select); }
-.jj .ph-count[aria-pressed='true'] > b, .jj .ph-count[aria-pressed='true'] > span { color: var(--on-select); }
-/* 트럭 줄: 두 줄. [번호판 (실시간) ……… 길 · 시각] / [점 + 상태 · 사정] */
-.jj .ph-truck { width: 100%; min-height: 72px; display: flex; align-items: center; gap: 8px; padding: 12px 8px 12px 16px; text-align: left; background-color: transparent; transition: background-color 120ms; }
+.jj .ph-count[aria-pressed='true'] { background: var(--accent-soft); }
+.jj .ph-count[aria-pressed='true'] > span { color: var(--body); }
+.jj .ph-count[aria-pressed='true']::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
+.jj .ph-ratio { flex: none; display: flex; gap: 2px; height: 4px; margin: 8px 16px 2px; }
+.jj .ph-ratio > i { flex: 1 1 0; min-width: 4px; background: var(--c); border-radius: 2px; }
+/* 트럭 줄 64: 두 줄. [번호판 15 / 600 (실시간) ……… 길 · 시각 12] / [점 8 + 상태 12 / 600 · 사정 12] */
+.jj .ph-truck { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 8px; padding: 9px 8px 9px 16px; text-align: left; background-color: transparent; transition: background-color 120ms; }
 .jj .ph-truck:active { background-color: var(--surface-soft); }
-.jj .ph-truck .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.jj .ph-truck .l1 { display: flex; align-items: center; min-width: 0; gap: 12px; }
+.jj .ph-truck .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.jj .ph-truck .l1 { display: flex; align-items: center; min-width: 0; gap: 10px; }
 .jj .ph-truck .l1 b { flex: none; min-width: 0; font-size: var(--fsp-heading); font-weight: 600; line-height: 22px; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .jj .ph-truck .l1 em { flex: 1; min-width: 0; display: flex; justify-content: flex-end; font-style: normal; font-size: var(--fsp-caption); line-height: 22px; font-weight: 400; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .jj .ph-truck .l1 em .rt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .jj .ph-truck .l1 em .tm { flex: none; white-space: pre; }
-.jj .ph-truck .l1 .live { flex: none; height: 22px; display: inline-flex; align-items: center; padding: 0 7px; margin-left: -4px; font-style: normal; font-size: var(--fsp-label); font-weight: 600; line-height: 1; color: var(--body); background: var(--surface-strong); border-radius: var(--r-xs); }
-.jj .ph-truck .l2 { display: block; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fsp-label); line-height: 20px; color: var(--body); font-variant-numeric: tabular-nums; }
-.jj .ph-truck .l2 .ph-stat { display: inline-flex; vertical-align: top; font-size: var(--fsp-label); line-height: 20px; }
+.jj .ph-truck .l1 .live { flex: none; height: 20px; display: inline-flex; align-items: center; padding: 0 6px; margin-left: -2px; font-style: normal; font-size: 12px; font-weight: 600; line-height: 1; color: var(--accent-text); background: var(--accent-soft); border-radius: var(--r-xs); }
+.jj .ph-truck .l2 { display: block; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fsp-label); line-height: 18px; color: var(--body); font-variant-numeric: tabular-nums; }
+.jj .ph-truck .l2 .ph-stat { display: inline-flex; vertical-align: top; font-size: var(--fsp-label); line-height: 18px; }
 .jj .ph-truck .l2 .why::before { content: '·'; margin: 0 6px; color: var(--muted); }
 .jj .ph-truck .l3 { display: block; min-width: 0; font-size: var(--fsp-caption); line-height: 18px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.jj .ph-truck .chev { flex: none; color: var(--muted-soft); }
+.jj .ph-truck .chev { flex: none; width: 18px; height: 18px; color: var(--muted-soft); }
 
 /* ── 운전 중 잠금 (기사): 바탕(--bg). 경고등 112 + 한 줄 + 보조 둘, 단추 · 칩 없음 ── */
 .jj .ph-lock { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bg); }
 .jj .ph-lock .body { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 24px 32px 64px; text-align: center; }
-.jj .ph-lock h2 { margin: 32px 0 12px; white-space: nowrap; font-size: var(--fsp-verdict); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); }
+.jj .ph-lock h2 { margin: 24px 0 10px; white-space: nowrap; font-size: var(--fsp-verdict); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; color: var(--ink); }
 .jj .ph-lock p { max-width: 300px; margin: 0; font-size: var(--fsp-body); font-weight: 400; line-height: 1.6; color: var(--muted); }
 .jj .ph-lock .ph-list { flex: none; margin-bottom: 16px; }
 .jj.ph-root[data-mode='drive'] .ph-statusbar { background: var(--bg); }
@@ -460,7 +502,7 @@
 .jj .ph-sheet .ph-list { gap: 8px; background: transparent; border-radius: 0; box-shadow: none; overflow: visible; }
 .jj .ph-sheet .ph-list > * { background-image: none; background-color: var(--surface-soft); border-radius: var(--r-md); }
 .jj .ph-sheet .ph-list > button:active { background-color: var(--surface-strong); }
-.jj .ph-sheet .ph-list > [aria-checked='true'] { --body: var(--on-select); --muted: var(--on-select); background-color: var(--select); }
+.jj .ph-sheet .ph-list > [aria-checked='true'] { --muted: var(--body); background-color: var(--accent-soft); }
 .jj .ph-sheet .ph-list .ic { background: transparent; }
 .jj .ph-sheet .ph-kv > div { background: var(--surface-soft); }
 /* 토스트: 앱 바 자리(높이 44)에 우물 면 + --e-1, 잉크 글 한 줄. 떠 있는 동안 앱 바는 숨긴다 (내용은 그대로) */
@@ -489,20 +531,19 @@
 .jj .ph-route.expand { animation: ph-expand var(--dur-4) var(--ease-in) both; }
 @keyframes ph-expand { from { clip-path: var(--ex); opacity: 0.6; } 40% { opacity: 1; } to { clip-path: inset(0 round 0); } }
 /* 목록 · 칸 · 셈 칸: 처음 보일 때 줄마다 40 ms 늦게 (8 줄까지) */
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > * { animation: jj-rise var(--dur-2) var(--ease-in) both; }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(7) { animation-delay: calc(var(--stagger) * 6); }
-.jj :is(.ph-list, .ph-tiles, .ph-cards, .ph-counts) > :nth-child(n + 8) { animation-delay: calc(var(--stagger) * 7); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > * { animation: jj-rise var(--dur-2) var(--ease-in) both; }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(7) { animation-delay: calc(var(--stagger) * 6); }
+.jj :is(.ph-list, .ph-cards, .ph-counts) > :nth-child(n + 8) { animation-delay: calc(var(--stagger) * 7); }
 /* 누름: 카드 · 줄은 덜 눌린다 */
-.jj :is(.ph-row, .ph-check, .ph-truck, .ph-toggle-row, .ph-ecard, .ph-tile, .ph-photo) { --press-scale: 0.985; }
-.jj :is(.ph-btn, .ph-btn2, .ph-icell, .ph-tab, .ph-cargo > button, .ph-seg > button, .ph-stepper > button, .ph-count, .ph-row, .ph-check, .ph-truck, .ph-toggle-row, .ph-ecard, .ph-tile, .ph-photo) {
+.jj :is(.ph-row, .ph-check, .ph-truck, .ph-toggle-row, .ph-ecard, .ph-kpi, .ph-photo) { --press-scale: 0.985; }
+.jj :is(.ph-btn, .ph-btn2, .ph-icell, .ph-tab, .ph-cargo > button, .ph-seg > button, .ph-stepper > button, .ph-count, .ph-row, .ph-check, .ph-truck, .ph-toggle-row, .ph-ecard, .ph-kpi, .ph-photo) {
   transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), box-shadow var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-spring);
 }
-.jj .ph-btn { box-shadow: none; }
 .jj .ph-seg .bub { transition: transform var(--dur-3) var(--ease-spring); }
 .jj .ph-toggle i { transition: transform var(--dur-3) var(--ease-spring), background-color var(--dur-1) var(--ease-std); }
 /* 탭: 고른 탭의 알약이 옆으로 펴지며 들어온다 */
@@ -513,7 +554,7 @@
 .jj .ph-check[aria-checked='true'] .box { animation: jj-pop var(--dur-3) var(--ease-std); }
 .jj .ph-check[aria-checked='true'] .box svg { animation: jj-draw var(--dur-3) var(--ease-in) 60ms both; }
 /* 칸 막대는 처음에 왼쪽에서 차오른다 */
-.jj .ph-tile .bar i { animation: ph-bar-in var(--dur-count) var(--ease-std) both; }
+.jj .ph-kpi .bar i { animation: ph-bar-in var(--dur-count) var(--ease-std) both; }
 @keyframes ph-bar-in { from { transform: scaleX(0); } }
 /* 시트: 아래에서 올라오고, 닫으면 내려간다 */
 .jj .ph-sheet-wrap { display: contents; }
@@ -534,6 +575,6 @@
 .jj .ph-pull-ind { position: absolute; left: 50%; top: 0; z-index: 3; width: 40px; height: 40px; margin-left: -20px; display: grid; place-items: center; color: var(--ink); background: var(--surface-soft); border-radius: var(--r-full); box-shadow: var(--e-1); pointer-events: none; }
 .jj .ph-pull-ind.busy svg { animation: jj-spin 0.7s linear infinite; }
 /* 다 됐어요 (폰 크기) */
-.jj.ph-root { --done: 88px; --fs-title: 20px; }
+.jj.ph-root { --done: 72px; --fs-title: 17px; }
 .jj.ph-root .ui-done { gap: 16px; padding: 28px 32px 24px; }
 .jj .ph-stage .wait.jj-skeleton { color: var(--muted); }

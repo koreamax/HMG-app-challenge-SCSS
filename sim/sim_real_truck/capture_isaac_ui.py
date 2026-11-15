@@ -2,6 +2,10 @@
 
   python sim_real_truck/capture_isaac_ui.py app       # isaac_app.png      Isaac Sim 창 전체 (뷰포트 + Stage + Property)
   python sim_real_truck/capture_isaac_ui.py physics   # isaac_physics.png  PhysX 디버그 표시 (충돌 모양 · 서스펜션 · 질량)
+  python sim_real_truck/capture_isaac_ui.py sit slide # sit_1_loaded / sit_2_braking / sit_3_shifted.png (벨트 2개, 글자 없는 사진)
+  python sim_real_truck/capture_isaac_ui.py sit held  # sit_4_held.png (벨트 4개, sit_3 과 같은 카메라)
+  python sim_real_truck/capture_isaac_ui.py tip       # sit_5_tip.png
+  python sim_real_truck/capture_isaac_ui.py window    # isaac_window.png (창 전체, 차량 선택)
   python sim_real_truck/capture_isaac_ui.py brake     # isaac_brake_seq.png 급제동 한 번을 세 장으로 (전 · 최대 감속 · 정차 뒤)
 
 장면 · 차 모양 · 제동은 render_hero.py 것을 그대로 쓴다 (render_hero 는 import 하면 SimulationApp 을 띄우므로, 여기서 먼저 띄운 앱을 돌려주게 바꿔 끼운다).
@@ -246,10 +250,170 @@ def brake_seq():
     print('BRAKE_SEQ', seq.size, flush=True)
 
 
+def dress(sim, look):
+    """장면에 실제로 놓는 표시 두 가지 (그림에 글자를 그리지 않기 위해): 출발 때 짐 자리의 노란 바닥 칠, 뒤 제동등"""
+    st = sim.stage
+    l, w, h = sim.case.size
+    c = sim.cargo_rest
+    m = 0.03
+    yellow = rh.mp.pbr(st, 'MarkPaint', (.95, .72, .04), .6, 0.)
+    rh.tg.rounded_box(st, sim.vp + '/Look/Mark', (c[0] - l / 2 - m, -w / 2 - m, sim.deck_top + .0002), (c[0] + l / 2 + m, w / 2 + m, sim.deck_top + .0018), 0.0, yellow)
+    look.lamp_off = rh.mp.pbr(st, 'BrakeOff', (.22, .01, .01), .35, 0.)
+    look.lamp_on = rh.mp.emissive(st, 'BrakeOn', (1., 0., 0.), float(os.environ.get('SIT_LAMP', '25')), base=(.3, 0., 0.))[0]
+    Wb = rh.PV5['bed']['w']
+    for k, y in enumerate((Wb / 2 - .20, -Wb / 2 - .05)):
+        rh.tg.rounded_box(st, sim.vp + f'/Look/Brake{k}', (sim.bed_x0 - .06, y, sim.deck_top - .26), (sim.bed_x0 + .10, y + .25, sim.deck_top - .08), .02, look.lamp_off)
+
+
+def lamps(sim, look, on):
+    for k in (0, 1):
+        rh.bind(sim.stage.GetPrimAtPath(sim.vp + f'/Look/Brake{k}'), look.lamp_on if on else look.lamp_off)
+
+
+def record_brake(sim, v_kmh=50.):
+    """물리만 (렌더 없이) 돌려 30 fps 로 자세 · 값을 기록한다"""
+    import math
+    per = int(round((1 / 30) / DT))
+    win = max(1, int(round(0.1 / DT)))
+    k = [0]
+    rec = []
+
+    def keep():
+        k[0] += 1
+        if k[0] % per:
+            return
+        ax = np.array(sim.rec.ax[-win:], float)
+        poses = tuple(np.array(x, float) for x in sim.poses())
+        rec.append({'poses': poses,
+                    'v': {'t': round(sim.t, 3), 'kmh': round(float(sim.rec.kmh[-1]), 2), 'decel_g': round(float(-ax.mean()), 3),
+                          'shift_cm': round(float(sim.rec.dx[-1] * 100), 2), 'brake': round(float(sim.rec.brake[-1]), 3),
+                          'pitch_deg': round(math.degrees(math.asin(-poses[1][2, 0])), 2), 'belt_N': [round(float(t)) for t in sim.rec.T[-1]],
+                          'tilt_deg': round(float(sim.rec.tilt[-1]), 1), 'on_bed': bool(sim.rec.on_bed[-1])}})
+
+    sim.launch(v_kmh / 3.6)
+    while sim.t < 2.0:
+        sim.step()
+        keep()
+    n_cruise = len(rec)
+    rh.brake_to_stop(sim, each=keep, hold=2.0)
+    peak = max(range(len(rec)), key=lambda i: rec[i]['v']['decel_g'])
+    return rec, n_cruise - 1, peak
+
+
+def place(sim, look, r):
+    rh.set_matrix(sim.stage.GetPrimAtPath(sim.vp), r['poses'][1], r['poses'][0])
+    look.sync_cargo(r['poses'])
+    look.straps_mesh(r['poses'])
+
+
+SIT_W, SIT_H = 1920, 1080
+
+
+def sit_cam(name, P, R):
+    """상황마다 다른 카메라 (차체 기준 눈, 보는 곳, 초점거리). 글자 · 화살표는 넣지 않는다"""
+    cams = {
+        'loaded': ((-4.9, 2.7, 1.75), (-1.15, 0., 0.05), 40.),      # 뒤 왼쪽 위에서 적재함 가까이
+        'braking': ((-7.2, -0.9, 0.7), (-1.0, 0., -0.1), 50.),      # 바로 뒤 낮은 자리: 켜진 제동등, 적재함 너머로 밀리는 짐
+        'top': ((-1.38, 0.6, 5.05), (-1.38, 0., -0.15), 50.),       # 적재함 위 (차 앞이 사진 왼쪽). 옆으로 0.6 m 비켜 둔다: 바로 위면 차체 기울기 때문에 화면이 돈다
+        'tip': ((-6.0, -5.2, 2.4), (-0.9, 0., 0.3), 34.),
+    }
+    v = os.environ.get('SIT_CAM_' + name.upper())
+    eye, tgt, focal = cams[name]
+    if v:
+        f = [float(x) for x in v.split(',')]
+        eye, tgt, focal = f[:3], f[3:6], f[6]
+    vp = camera(sim_stage[0], P + R @ np.array(eye), P + R @ np.array(tgt), focal, SIT_W, SIT_H)
+    vp.resolution = (SIT_W, SIT_H)
+    return vp
+
+
+sim_stage = [None]
+
+
+def sit():
+    """상황 사진. slide = 벨트 2개 (sit_1 출발, sit_2 급제동 순간, sit_3 정차 뒤 위에서) / held = 벨트 4개 (sit_4, sit_3 과 같은 카메라)"""
+    key = sys.argv[2] if len(sys.argv) > 2 else 'slide'
+    box = CARGO['box']
+    belts = 4 if key == 'held' else 2
+    t0 = float(os.environ.get('SIT_T0', '1250'))
+    sim, look = rh.scene(Case('box', 300., box['size'], box['mu'], belts, t0, 0.35), 'box')
+    sim_stage[0] = sim.stage
+    dress(sim, look)
+    rec, i_before, i_peak = record_brake(sim)
+    print('RECORDED', key, len(rec), 'peak %.2f g' % rec[i_peak]['v']['decel_g'], 'shift %.1f cm' % rec[-1]['v']['shift_cm'], flush=True)
+    sim.sim.stop()
+    R0 = rec[0]['poses'][1]
+    shots = [('sit_1_loaded', i_before, 'loaded'), ('sit_2_braking', i_peak, 'braking'), ('sit_3_shifted', len(rec) - 1, 'top')] if key == 'slide' else [('sit_4_held', len(rec) - 1, 'top')]
+    vals = {}
+    for n, (name, i, cam) in enumerate(shots):
+        r = rec[i]
+        place(sim, look, r)
+        lamps(sim, look, r['v']['brake'] > 0)
+        P, R = r['poses'][0], r['poses'][1]
+        vp = sit_cam(cam, P, R0 if cam == 'braking' else R)       # 급제동 장면은 카메라를 수평으로 둔다 (차가 숙는 것이 보이게)
+        p = shot_viewport(vp, OUT / f'{name}.png', 160 if n == 0 else 80)
+        vals[name] = dict(r['v'], belts=belts, tension_N=t0, cargo='box 300 kg 1.0x0.8x0.8 m, mu 0.30', camera=cam, size=list(Image.open(p).size))
+        print('SIT', name, vals[name], flush=True)
+    (OUT / f'sit_values_{key}.json').write_text(json.dumps(vals, ensure_ascii=False, indent=1), encoding='utf-8')
+
+
+def tip():
+    """고무바 2개로 묶은 키 큰 가전 (300 kg, 0.75x0.70x1.80 m), 시속 40 km 램프 회전 0.42 g: 넘어지는 순간 (render_hero.lost 와 같은 주행)"""
+    import math
+    a = CARGO['appliance']
+    sim, look = rh.scene(Case('appliance', 300., a['size'], a['mu'], 2, 0., 0.0, rubber=True), 'appliance')
+    sim_stage[0] = sim.stage
+    for _ in range(int(2.0 / DT)):
+        sim.step(brake=1.0)
+    fwd = 0.
+    while True:
+        fwd, _ = sim.step(accel=0.55)
+        if fwd >= 40 / 3.6 or sim.t > 40:
+            break
+    t_c = sim.t
+    while sim.t < t_c + 3.0:
+        sim.step(accel=0.12)
+    st = math.atan(rh.PV5['wheelbase'] * .42 * 9.81 / (max(1., fwd) ** 2)) / rh.PV5['max_steer']
+    t = 0.
+    n0 = len(sim.rec.ay)
+    lim = float(os.environ.get('SIT_TIP_DEG', '30'))
+    while t < 5.5:
+        sim.step(accel=0.2, steer=st * min(1., t / 0.6))
+        t += DT
+        if sim.rec.tilt[-1] >= lim:
+            break
+    win = max(1, int(round(0.1 / DT)))
+    ay = np.convolve(np.abs(np.array(sim.rec.ay[n0:])), np.ones(win) / win, 'valid')
+    v = {'kmh': round(float(sim.rec.kmh[-1]), 1), 'lat_g_peak_0p1s': round(float(ay.max()), 2) if len(ay) else 0., 'tilt_deg': round(float(sim.rec.tilt[-1]), 1),
+         'on_bed': bool(sim.rec.on_bed[-1]), 'turn_s': round(t, 2), 'reached_kmh': round(fwd * 3.6, 1), 'belts': 2, 'tension_N': 0, 'cargo': 'appliance 300 kg 0.75x0.70x1.80 m, mu 0.30, rubber cords'}
+    print('TIP', v, flush=True)
+    poses = tuple(np.array(x, float) for x in sim.poses())
+    sim.sim.stop()
+    place(sim, look, {'poses': poses})
+    vp = sit_cam('tip', poses[0], poses[1])
+    p = shot_viewport(vp, OUT / 'sit_5_tip.png', 160)
+    v['size'] = list(Image.open(p).size)
+    (OUT / 'sit_values_tip.json').write_text(json.dumps(v, ensure_ascii=False, indent=1), encoding='utf-8')
+
+
+def window_shot():
+    """Isaac Sim 창 (스왑체인), 차량 프림을 고른 상태, 뷰포트에 차가 크게"""
+    sim, look = rh.scene(box_case(), 'box')
+    P, R, CP, CR = sim.poses()
+    w, h = 2208, 1152
+    vp = camera(sim.stage, P + R @ np.array([-5.6, 4.0, 2.2]), P + R @ np.array([-0.1, 0., -0.2]), 34., w, h)
+    vp.resolution = (w, h)
+    pump(240, .01)
+    omni.usd.get_context().get_selection().set_selected_prim_paths([os.environ.get('ISAAC_SELECT', sim.vp)], True)
+    pump(120, .01)
+    p = shot_window(OUT / 'isaac_window.png', 90)
+    print('WINDOW_SHOT', p, Image.open(p).size, flush=True)
+
+
 if __name__ == '__main__':
     t0 = time.time()
     try:
-        {'app': app_shot, 'physics': physics_shot, 'brake': brake_seq}[MODE]()
+        {'app': app_shot, 'physics': physics_shot, 'brake': brake_seq, 'sit': sit, 'tip': tip, 'window': window_shot}[MODE]()
     except Exception as error:  # noqa: BLE001
         import traceback
         traceback.print_exc()

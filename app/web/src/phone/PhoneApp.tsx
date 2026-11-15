@@ -144,7 +144,7 @@ function Notification({ top, tab, route }: { top: number; tab: Tab; route: Route
       <div className="ph-notif-scrim" aria-hidden key={'s' + notif.key + ':' + notif.rank} />
       <div className="ph-notif tone-red" style={{ top }} role="alert" key={notif.key + ':' + notif.rank} ref={ref}>
         <button type="button" className="go" onClick={() => openIncident(inc)} aria-label={title + ', ' + caption + ', 사건 열기'}>
-          <Sign tone="red" size={32} shape={20} />
+          <Sign tone="red" size={28} />
           <span className="tx">
             <b>{title}</b>
             <span>{caption}</span>
@@ -212,7 +212,7 @@ function DriveLock() {
   return (
     <div className="ph-lock" role="status" aria-live="polite" aria-label={kind ? title + ' · 운전 중입니다' : '운전 중입니다'} data-event={kind ? '' : undefined}>
       <div className="body">
-        <Sign tone={kind ? (tone === 'green' || tone === 'grey' ? 'red' : tone) : 'neutral'} size={112} />
+        <Sign tone={kind ? (tone === 'green' || tone === 'grey' ? 'red' : tone) : 'neutral'} size={96} />
         <h2>{title}</h2>
         <p>
           {kind ? '운전 중입니다 · 세우면 이어서 봅니다' : '차 화면과 음성으로 알려 드립니다'}
@@ -288,6 +288,12 @@ export default function PhoneApp() {
       if (!(el instanceof HTMLElement) || !el.classList.contains('ph-scroll')) return
       const s = el.scrollTop > 1
       if (s !== el.hasAttribute('data-scrolled')) el.toggleAttribute('data-scrolled', s)
+      // 무대가 거의 다 올라갔으면 (남은 높이 72 밑) 무대 위 칩 · 보기 알약을 숨긴다: 판정 줄 밑 녹임에 테두리 실오라기가 비치지 않게
+      const st = el.querySelector('.ph-stage')
+      if (st instanceof HTMLElement) {
+        const off = st.offsetTop + st.offsetHeight - el.scrollTop < 72
+        if (off !== el.hasAttribute('data-stage-off')) el.toggleAttribute('data-stage-off', off)
+      }
     }
     root.addEventListener('scroll', on, true)
     return () => root.removeEventListener('scroll', on, true)

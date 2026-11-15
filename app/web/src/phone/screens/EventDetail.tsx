@@ -1,11 +1,11 @@
 /**
  * 4.9 사건 자세히 + 다시 묶기. 사건 카드나 알림(Android 알림과 같은 글)으로 들어온다.
- * 판정 띠 고정('짐이 밀렸습니다' · '다시 묶기 2단계', 보조 줄 없음) -> 무대 390 x 240 이하 (왼쪽 위 장소 caption 한 줄 · 오른쪽 아래 '출발 때 자리' 꼬리표)
- * -> 순서 할 일 줄 (첫 화면에 보인다) -> 칸 3개 -> (키트 없음) '짐이 실제로 밀렸나요?' -> '조인 뒤 사진'. 고정 영역 '다시 조였어요'
+ * 판정 줄 고정('짐이 밀렸습니다' · '다시 묶기 2단계', 보조 줄 없음) -> 무대 390 x 250 안팎 (글 없음, §11.6)
+ * -> 순서 할 일 줄 (첫 화면에 보인다, 머리에 진행 막대) -> 지표 줄 2 x 2 (받은 힘 · 한계 · 짐 이동 · 위치) -> (키트 없음) '짐이 실제로 밀렸나요?' -> '조인 뒤 사진'. 고정 영역 '다시 조였어요'
  * (체크 안 한 단계는 '확인 안 함'). 이탈 의심은 칸 대신 신고 줄 2개 (누르면 전화)가 할 일보다 먼저.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, Gauge, Move, Phone } from 'lucide-react'
+import { Activity, Gauge, MapPin, Move, Phone } from 'lucide-react'
 import { judgeLoad } from '@/engine/limit'
 import type { ActiveAlert } from '@/engine/monitor'
 import { REPORT_PHONES } from '@/engine/lines'
@@ -19,22 +19,10 @@ import { addWaybillPhoto, back, detailOf, markSeen, openViewer, phone, saveEvent
 import { usePhotoInput } from '../photo'
 import { AppBar, Banner, CheckRow, Fixed, Head, ListRow, PhotoCell, Primary, Segmented, Tile } from '../ui'
 import { celebrate } from '@/ui/parts'
+import { withChips } from '../chips'
 import { Stage } from './Stage'
 
 const KIT_OFF: KitView = { mode: 'off', fresh: false, snap: null, ageS: null, runLabel: null, feedError: null }
-/** three/bed-input 이 유령 상자를 그릴 때 붙이는 설명. 글 줄 대신 무대 안 작은 꼬리표로 보인다 */
-const GHOST_NAME = '흐린 상자는 출발 때 자리'
-
-/** 무대 오른쪽 아래 작은 꼬리표: 점선 네모 = 출발 때 자리 (3D 유령 상자와 같은 모양) */
-function GhostLegend() {
-  return (
-    <span className="ph-legend">
-      <i aria-hidden />
-      출발 때 자리
-    </span>
-  )
-}
-
 export function EventDetailScreen({ ikey }: { ikey: string }) {
   const incidents = useIncidents()
   const out = useStore(app, (s) => s.out)
@@ -70,9 +58,12 @@ export function EventDetailScreen({ ikey }: { ikey: string }) {
   const stage = useMemo(() => {
     if (!inc) return null
     const input = inc.wb.input
-    if (live && out) return stageInput({ load: input, verdict: out.verdict, kit, alert: live, mode: 'relash' })
+    // 사건 그림의 칩 (§11.7): 상태 칩 1 + '출발 때 자리' (흐린 상자가 보일 때), 아니면 짐 칩
+    const chips = (o: ReturnType<typeof stageInput>, v: ReturnType<typeof judgeLoad>) => ({ ...o, input: withChips(o.input, v, input, false) })
+    if (live && out) return chips(stageInput({ load: input, verdict: out.verdict, kit, alert: live, mode: 'relash' }), out.verdict)
     const a = incidentAlert(inc, d)
-    return stageInput({ load: input, verdict: judgeLoad(input), kit: KIT_OFF, alert: a, mode: 'relash' })
+    const v = judgeLoad(input)
+    return chips(stageInput({ load: input, verdict: v, kit: KIT_OFF, alert: a, mode: 'relash' }), v)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bedKey])
 
@@ -99,9 +90,8 @@ export function EventDetailScreen({ ikey }: { ikey: string }) {
   const after = inc.wb.entries.filter((x): x is Extract<typeof x, { kind: 'photo' }> => x.kind === 'photo' && tags[inc.wb.id + ':' + x.at]?.ref === inc.key)
   const lastAfter = after[after.length - 1] ?? null
   const done = checked.filter(Boolean).length
-  // 한 화면에 한 번만: 사건 시각은 앱 바, 장소는 무대 왼쪽 위 caption 한 줄. 판정 카드 밑 보조 줄은 두지 않는다
+  // 한 화면에 한 번만: 사건 시각은 앱 바, 장소는 지표 줄의 '위치' 칸. 판정 줄 밑 보조 줄은 두지 않는다
   const banner = { ...incidentBanner(inc, steps.length, d), alt: null }
-  const ghost = stage?.name === GHOST_NAME
   // 이미 남긴 조치는 남긴 그대로 (단계 글 · 체크)
   const shown = note ? note.steps.map((n, i) => ({ title: n.title, caption: steps[i]?.caption, tone: steps[i]?.tone ?? ('orange' as const) })) : steps
   const shiftNote = !lost && e.measured && shift && !(inc.kind === 'moved' && (d?.shiftDir ?? live?.shiftDir)) ? '짐이 ' + shift + ' 움직였습니다' : null
@@ -127,7 +117,7 @@ export function EventDetailScreen({ ikey }: { ikey: string }) {
       <AppBar title={'사건 · ' + clock(inc.first.at)} onBack={back} />
       <Banner data={banner} />
       <div className="ph-scroll">
-        <Stage input={stage?.input ?? null} short tone={banner.tone} keep={lost ? '.ph-calls' : '.ph-steps'} name={null} foot={placeWord(inc, d)} legend={ghost ? <GhostLegend /> : null} />
+        <Stage input={stage?.input ?? null} short tone={banner.tone} keep={lost ? '.ph-calls' : '.ph-steps'} />
         {/* 이탈 의심: 신고 전화가 먼저 (누르면 전화). 그 밖: 할 일이 먼저 (무대 바로 아래, 첫 화면에 1단계가 보인다), 값 칸은 그 아래 */}
         {lost && (
           <div className="ph-list ph-calls">
@@ -138,6 +128,7 @@ export function EventDetailScreen({ ikey }: { ikey: string }) {
         )}
         <Head
           title="순서대로"
+          progress={resolved ? null : { done, total: steps.length }}
           caption={
             resolved
               ? (lost ? '확인 ' : '조치 ') + clock(inc.resolvedAt!) + (note ? ' · ' + note.steps.filter((s) => s.done).length + ' / ' + note.steps.length + ' 확인' : '')
@@ -157,8 +148,13 @@ export function EventDetailScreen({ ikey }: { ikey: string }) {
             />
           ))}
         </div>
-        {lost ? null : (
-          <div className="ph-tiles c3 gap-top">
+        {/* 지표 줄 (§11.7): 받은 힘 · 한계 · 짐 이동 · 위치. 장소는 무대 caption 대신 '위치' 칸이 말한다. 이탈 의심은 위치 칸 하나 */}
+        {lost ? (
+          <div className="ph-kpis c1 gap-top">
+            <Tile tone="neutral" icon={<MapPin size={16} strokeWidth={2} />} name="위치" word value={placeWord(inc, d)} />
+          </div>
+        ) : (
+          <div className="ph-kpis c2 gap-top">
             <Tile
               tone="red"
               icon={<Activity size={16} strokeWidth={2} />}
@@ -176,6 +172,7 @@ export function EventDetailScreen({ ikey }: { ikey: string }) {
               unit={e.measured ? 'cm' : undefined}
               cap={e.measured ? (e.shiftMm && e.shiftMm >= 5 ? (shiftDirNow ? SHIFT_WORD[shiftDirNow] : '움직임') : '제자리') : '키트 없음'}
             />
+            <Tile tone="neutral" icon={<MapPin size={16} strokeWidth={2} />} name="위치" word value={placeWord(inc, d)} />
           </div>
         )}
         {/* 도움말은 화면에 한 줄만 (조치할 수 없는 까닭 > 키트 없는 추정 > 움직인 방향 > 체크 안 한 단계) */}

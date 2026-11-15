@@ -1,6 +1,6 @@
 /**
- * 4.8 3D 확인 (§10.5 폰 2, 390 x 844 첫 화면에 스크롤 없이): 판정 카드 88 -> 3D 무대 폭 가득 268 [무대 안 왼쪽 아래 보기 알약 3D · 위에서 · 키트]
- * -> 칸 2 x 2 (높이 96) -> 주 단추 56. 그 아래로 스크롤: '눈으로 확인' -> 짐 사진 358 x 200.
+ * 4.8 3D 확인 (§11.7, 390 x 844 첫 화면에 스크롤 없이): 판정 줄 64 -> 3D 무대 폭 가득 280 안팎 [정보 칩 둘까지 + 고른 짐 테두리, 오른쪽 아래 보기 알약 3D · 위에서 · 키트]
+ * -> 지표 줄 (판 하나에 2 x 2, 칸 60) -> '눈으로 확인' 머리 + 첫 줄 -> 주 단추 52. 그 아래로 스크롤: '눈으로 확인' -> 짐 사진 358 x 200.
  * 주 단추: '짐 사진 찍기' -> 찍은 뒤 '상차 끝 · 운송장에 남기기'. 사건이 열려 있으면 판정 카드가 사건을 말하고 단추는 '다시 묶기 시작' (사건 카드를 따로 두지 않는다).
  */
 import { useMemo, useState } from 'react'
@@ -12,10 +12,11 @@ import { useStore } from '@/runtime/store'
 import { kitKey, stageInput, type StageOut } from '@/three/bed-input'
 import type { StageTag } from '@/three/bed-scene'
 import { fmtN } from '@/ui/format'
-import { GREEN_NOTE, incidentAlert, incidentBanner, incidentCaption, limitName, loadBanner, stepsFor, type Incident } from '../derive'
+import { GREEN_NOTE, incidentAlert, incidentBanner, limitName, loadBanner, stepsFor, type Incident } from '../derive'
 import { addWaybillPhoto, detailOf, openIncident, openSheet, openViewer, phone, push, saveLoadNote, showToast, useIncidents } from '../state'
+import { kitChips, withChips } from '../chips'
 import { usePhotoInput } from '../photo'
-import { AppBar, Banner, CargoIcon, CheckRow, Fixed, Head, IconCell, KitMark, PhotoCell, Primary, Secondary, Segmented, Tile, useRolled } from '../ui'
+import { AppBar, Banner, CargoIcon, CheckRow, Fixed, Head, IconCell, PhotoCell, Primary, Secondary, Segmented, Tile, useRolled } from '../ui'
 import { Stage } from './Stage'
 
 type View = '3d' | 'top' | 'kit'
@@ -60,9 +61,15 @@ export function Check3DScreen() {
   // 고무바 · 로프는 장력을 계산에 넣지 않는다: 판정이 주황 · 빨강이면 그 띠를 판정 색으로 칠하고 까닭을 꼬리표로
   const rubberWarn = !open && load?.beltType === 'rubber' && (v.tone === 'orange' || v.tone === 'red')
   const stage3d = useMemo(
-    () => tidyStage(capTags(stageInput({ load, verdict: open ? live : v, kit, alert: stageAlert, mode: stageMode })), settled, rubberWarn),
+    () => {
+      const out = tidyStage(capTags(stageInput({ load, verdict: open ? live : v, kit, alert: stageAlert, mode: stageMode })), settled, rubberWarn)
+      // 센서 키트 보기는 잰 값 칩이 목적이라 그대로. 3D · 위에서: 고른 짐 테두리 + 정보 칩 (상태 칩 1 + 짐, 상태가 없으면 짐 · 벨트. 장면이 둘까지 그린다)
+      //   위에서: 적재함이 무대를 가득 채우므로 테두리만 (칩은 적재함 바닥을 덮는다)
+      if (view === 'kit') return { ...out, input: kitChips(out.input) }
+      return { ...out, input: withChips(out.input, open ? live : v, load, !open && !stageAlert, view !== 'top') }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [load, v.tone, v.kind, v.limit.toFixed(3), v.extraBelts, kk, stageAlert?.kind, stageAlert?.wallMs, stageAlert?.loose.c1, stageAlert?.loose.c2, stageAlert?.shiftMm, stageMode, settled, rubberWarn],
+    [load, v.tone, v.kind, v.limit.toFixed(3), v.extraBelts, kk, stageAlert?.kind, stageAlert?.wallMs, stageAlert?.loose.c1, stageAlert?.loose.c2, stageAlert?.shiftMm, stageMode, view, settled, rubberWarn],
   )
   if (!load || !waybill) return null
 
@@ -73,12 +80,10 @@ export function Check3DScreen() {
   })
   const lastPhoto = loadPhotos[loadPhotos.length - 1] ?? null
   const note = loadNotes[waybill.id] ?? null
-  // 첫 화면은 판정 카드 한 장에 판정 · 할 일만 (보조 줄 없음). 사건 시각 · 장소는 무대 왼쪽 위 caption, 다른 방법은 눈으로 확인 아래 한 줄
+  // 첫 화면은 판정 줄 하나에 판정 · 할 일만 (보조 줄 없음). 사건 시각 · 장소는 사건 화면에서 (무대에는 글이 없다, §11.6), 다른 방법은 눈으로 확인 아래 한 줄
   const full = open ? incidentBanner(open, stepsFor(open.kind, open.last.measured, detail?.loose ?? alert?.loose ?? null, detail?.shiftDir ?? alert?.shiftDir ?? null, open.wb.input).length, detail) : loadBanner(v)
   const banner = { ...full, alt: null }
   const altTip = open ? null : full.alt
-  // 무대 caption 은 쓸모 있을 때만 한 줄: 사건 시각 · 장소, 키트가 끊김, 키트 보기인데 키트 없음. 'P 정차 중 · 키트 연결' 같은 기술 말은 쓰지 않는다
-  const stageCap = open && view !== 'kit' ? incidentCaption(open, detail) : kit.mode !== 'off' && !kit.fresh ? <KitMark word="키트 끊김" on={false} /> : view === 'kit' && kit.mode === 'off' ? '센서 키트 없음' : null
   const eyeList = v.eyeChecks.length ? v.eyeChecks : ['고리 체결', '모서리 보호대']
   const eyeDone = eyeList.filter((k) => eye[k]).length
   const t0 = v.tensions[0]
@@ -110,10 +115,8 @@ export function Check3DScreen() {
     <Stage
       input={stage3d.input}
       view={view === 'top' ? 'top' : '3d'}
-      name={view === 'kit' || open ? null : stage3d.name}
       tone={banner.tone}
       top={<ViewSeg view={view} onChange={setView} />}
-      foot={stageCap}
     />
   )
 
@@ -130,7 +133,7 @@ export function Check3DScreen() {
       <Banner data={banner} />
       <div className="ph-scroll">
         {stage}
-        <div className="ph-tiles c2">
+        <div className="ph-kpis c2">
           <LimitTile v={v} open={open} />
           <Tile tone="neutral" icon={<CargoIcon kind={load.kind} size={18} />} name="짐" value={load.massKg} unit="kg" cap={CARGO[load.kind].label} onClick={() => push({ name: 'edit' })} label="짐 고치기" />
           <Tile
@@ -153,7 +156,7 @@ export function Check3DScreen() {
             label="앞벽 고치기"
           />
         </div>
-        <Head title="눈으로 확인" caption={eyeDone + ' / ' + eyeList.length} />
+        <Head title="눈으로 확인" caption={eyeDone + ' / ' + eyeList.length} progress={{ done: eyeDone, total: eyeList.length }} />
         <div className="ph-list">
           {eyeList.map((k) => (
             <CheckRow key={k} title={k} caption={EYE_CAPTION[k]} checked={!!eye[k]} onToggle={() => setEyeCheck(k, !eye[k])} />
@@ -239,11 +242,14 @@ function capTags(out: StageOut): StageOut {
     const [wordb, ...vb] = wb.split(' ')
     // 말 없이 값만 있는 꼬리표('앞 바 · 1,250 N', 키트 보기): 값이 같으면 하나로, 다르면 '1,250 / 1,100 N'
     const numeric = /^[\d,.]+$/.test(worda ?? '') && /^[\d,.]+$/.test(wordb ?? '')
-    if (numeric) belt = { ...a, id: 'c12', text: '앞 · 뒤 바 ' + (wa === wb ? wa : worda + ' / ' + wb) }
+    // 키트 보기의 잰 값 ('앞 바 장력 · …') 은 이름과 값 사이 ' · ' 를 남긴다 (정보 칩이 이름 / 값으로 나눈다)
+    const pre = a.text.includes(' 장력 · ') ? '앞 · 뒤 바 장력 · ' : '앞 · 뒤 바 '
+    if (numeric) belt = { ...a, id: 'c12', text: pre + (wa === wb ? wa : worda + ' / ' + wb) }
     else if (worda && worda === wordb) {
       const na = va.join(' ').replace(/ N$/, '')
       const nb = vb.join(' ').replace(/ N$/, '')
-      belt = { ...a, id: 'c12', text: '앞 · 뒤 바 ' + worda + ' ' + (na === nb ? na : na + ' / ' + nb) + ' N' }
+      // 값이 없는 말 ('없음' · '끊김') 은 말만
+      belt = { ...a, id: 'c12', text: !na && !nb ? pre + worda : pre + worda + ' ' + (na === nb ? na : na + ' / ' + nb) + ' N' }
     } else belt = (TONE_RANK[b.tone] ?? 0) > (TONE_RANK[a.tone] ?? 0) ? b : a
   }
   const next = belt && rest.length < 2 ? [belt, ...rest] : rest.slice(0, 2)

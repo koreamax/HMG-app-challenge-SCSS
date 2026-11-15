@@ -1,35 +1,36 @@
-/* 내비 판 v5 "Obsidian Studio" (design/DESIGN_SPEC.md §10). 검은 스튜디오 바닥 위에 적재함 하나, 둘레는 어두운 면의 밝기 차이로만.
-   설계 폭: wide 1920 · mid 1600 (실제 Pleos 창 1224 x 880, x0.765) · tall 800 (세로 창 611 x 880, x0.764).
-   §10 의 CSS px 값 x 1.307 = 설계 px: 창 가장자리 24 -> 32, 영역 사이 16 -> 20, 경고등 64 -> 84, 주 단추 280 x 64 -> 366 x 84,
-   막대 80 -> 104, 무대 704 -> 920, 오른 단 360 -> 472, 칸 172 x 120 -> 226 x 157, 버금 단추 높이 64 -> 84. 글자 18 CSS px = 24 설계 px 가 바닥.
-   색의 역할 셋: 상태 색은 경고등 · 3D 문제 벨트 · 막대 · 작은 점에만 / 파랑은 화면에 하나 (주 단추) / 나머지는 바탕 < 카드 < 우물 · 버금 면.
-   흰색 · 밝은 회색 면 없음, 창 테두리 선 없음, 무대에 판 · 테두리 · 사각형 없음. 판에는 빛 번짐 · 그라데이션 없음 (3D 무대만).
-   쌓는 순서: 3D < 칸 · 카드 < 자세히 카드 < 알림 < 시트 < 화면 테두리 */
+/* 내비 판 v5 "대시보드 트윈" (design/DESIGN_SPEC.md §11). 검은 스튜디오 위에 적재함 하나, 그 둘레에 반듯한 어두운 판 (지표 줄 · 오른 단 판 · 아래 줄 카드).
+   설계 폭: wide 1920 · mid 1600 (실제 Pleos 창 1224 x 880, x0.765) · tall 800 (세로 창 611 x 880, x0.764). 글자 24 설계 px (18.4 CSS px) 가 바닥.
+   짜임: 왼 덩어리 [지표 줄 76 / 3D 무대 / 아래 줄 카드 164 (높은 창의 정차 확인: 계산 근거 · 짐 종류)] + 오른 단 472 [도구 줄 76 / 판정 판 (주 단추) / 할 일 판 / 벨트 장력 · 방금 받은 힘 판 (높은 창) / 버금 단추 76].
+   창 가장자리 좌우 32 · 위아래 24, 영역 사이 16, 판 안쪽 20, 판 모서리 16, 판 둘레 1 px --panel-line (면 차이 정도).
+   색: 상태 색(세이지 · 앰버 · 브릭)은 경고 표지 · 위 빛 줄 · 3D 문제 벨트 · 상태 점 · 버티는 제동 막대에만 /
+       강조 색 아쿠아 틸(--accent)은 고른 것 · 진행 막대 · 판 머리 세모 · 둥근 아이콘 · 주 단추(깊은 틸 + 1 px 테두리) /
+       둘째 강조 색 라벤더 블루(--accent-2)는 기준 눈금 · 기준 글 · 추정값 / 나머지는 바탕 < 판 < 우물 · 버금 면. 주행 화면에는 강조 색이 없다.
+   흰색 · 밝은 회색 면 없음, 창 테두리 선 없음, 판에는 빛 번짐 · 그라데이션 · 흐림 없음 (빛은 3D 바닥에만).
+   쌓는 순서: 3D < 판 < 자세히 카드 < 알림 < 시트 < 경고 빛 줄 */
 .jj.nav {
-  --gap: 20px; /* 영역 사이 (16 CSS) */
-  --edge: 32px; /* 창 가장자리 (24 CSS) */
-  --row-pad: 26px; /* 카드 안쪽 (20 CSS) */
-  --h-row: 104px; /* 줄 (80 CSS) */
-  --h-btn: 84px; /* 단추 (64 CSS) */
-  --h-seg: 84px;
+  --gap: 16px; /* 영역 사이 */
+  --edge: 32px; /* 창 가장자리 좌우 */
+  --edge-y: 24px; /* 창 가장자리 위아래 */
+  --row-pad: 20px; /* 판 안쪽 */
+  --h-row: 92px; /* 시트 줄 */
+  --h-btn: 76px; /* 버금 단추 · 줄 (실제 창 58 CSS px) */
+  --h-primary: 80px; /* 주 단추 */
+  --h-seg: 76px;
   --h-chip: 40px;
-  --h-pill: 84px;
-  --h-cell: 104px; /* 막대 칸 (80 CSS) */
-  --h-banner: 136px; /* 판정 머리 (104 CSS) */
+  --h-pill: 76px;
+  --h-cell: 76px; /* 도구 줄 */
+  --h-kpi: 76px; /* 지표 줄 */
+  --h-strip: 164px; /* 아래 줄 카드 */
   --h-top: 88px;
-  --badge: 44px;
-  --check: 44px;
-  --sign: 68px; /* 경고 표지: 가는 선 그림 (52 CSS). 면이 없으므로 자리 = 그림 */
+  --badge: 36px;
+  --check: 40px;
+  --icon: 28px;
+  --sign: 44px; /* 경고 표지: 가는 선 그림. 면이 없으므로 자리 = 그림 */
   --sign-shape: 100%;
-  --w-rail: 104px;
-  --w-action: 366px; /* 주 단추 (280 CSS) */
-  --w-aside: 472px; /* 오른 단 (360 CSS) */
-  --w-side: 472px;
-  --h-tile: 157px; /* 칸 (120 CSS) */
-  --h-tile-max: 188px; /* side 오른 단에 높이가 남으면 칸이 여기까지 받는다 (144 CSS) */
+  --w-aside: 472px; /* 오른 단 */
   --rec-list: 560px;
-  --tile-pad: 16px 26px;
-  --fs-pill: 29px;
+  --tile-pad: 16px 24px;
+  --fs-pill: 26px;
   position: relative;
   overflow: hidden;
   color: var(--ink);
@@ -39,63 +40,117 @@
   overflow-wrap: anywhere;
 }
 .jj.nav[data-layout='mid'] { --rec-list: 480px; }
-/* 1920 x 1080: 칸은 160 에서 시작해 남는 높이를 200 까지 받는다 (할 일 줄 셋도 잘리지 않게) */
-.jj.nav[data-size='lg'] { --h-tile: 160px; --h-tile-max: 200px; --tile-pad: 18px 28px; }
-/* 세로 창 (611 x 880): 가장자리 24 · 영역 사이 12 CSS. 판정 머리 168 · 보기 막대 64 · 무대 · 칸 2 x 2 (274 x 104) · 버금 단추 64 */
-.jj.nav[data-layout='tall'] { --edge: 32px; --gap: 16px; --h-cell: 84px; --h-tile: 136px; --sign: 56px; --tile-pad: 18px 24px; --top-edge: 32px; }
+.jj.nav[data-layout='tall'] { --edge: 32px; --gap: 16px; --top-edge: 32px; --sign: 40px; }
 .jj.nav button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .jj.nav button:disabled { cursor: default; }
 .jj.nav .tnum { font-variant-numeric: tabular-nums; }
+.jj.nav :is(button, a, [role='button']):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-/* ── 경고 빛 줄 (2026-11-15, 옛 화면 테두리 대신): 창 위 변 가운데의 가는 줄 하나. 양 끝은 바탕으로 사라진다.
-   화면 전체를 색으로 두르지 않는다. 단계는 길이 · 굵기로도 읽힌다: 빨강 = 3 px · 폭의 56 %, 주황 = 2 px · 폭의 32 %.
-   움직이지 않는다 (주행 · 정차 모두). 다시 묶기(정차)도 같은 빨강 줄 ── */
+/* ── 공용 부품의 내비 겉면 (§11.2): 단추 · 고른 것 · 체크 · 켜기 ── */
+.jj.nav .ui-btn { min-height: var(--h-btn); border-radius: var(--r-btn); }
+/* 주 단추: 깊은 틸 면 + 잉크 글 + 안쪽 1 px 강조 테두리. 화면에 하나 */
+.jj.nav .ui-btn.primary { height: var(--h-primary); box-shadow: inset 0 0 0 1px var(--primary-rim); }
+.jj.nav .ui-btn.primary:disabled { box-shadow: none; }
+/* 나눔 단추: 고른 칸 = 강조 면 + 잉크 글 + 아래 2 px 표시 줄 (폭 40 %) */
+.jj.nav .ui-seg { border-radius: var(--r-btn); }
+.jj.nav .ui-seg > .ind { background: var(--accent-soft); border-radius: calc(var(--r-btn) - 4px); }
+.jj.nav .ui-seg > .ind::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 1px; }
+.jj.nav .ui-seg > button { border-radius: calc(var(--r-btn) - 4px); }
+.jj.nav .ui-seg > button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
+.jj.nav .ui-seg > button[aria-pressed='true'] svg { color: var(--accent); }
+.jj.nav .ui-cell { border-radius: var(--r-btn); }
+/* 체크 칸: 체크됨 = 강조 면 + 어두운 체크. 순서 배지 = 어두운 동그라미 + 강조 색 가는 테두리 (3D 의 배지와 같은 모양) */
+.jj.nav .ui-check .box { border-radius: 10px; }
+.jj.nav .ui-check[aria-checked='true'] .box { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.jj.nav .ui-check .badge { font-weight: 600; color: var(--ink); background: var(--surface-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.jj.nav .ui-check[aria-checked='true'] .badge { color: var(--muted); box-shadow: inset 0 0 0 1px var(--hairline-strong); }
+/* 켜기: 켜짐 = 강조 면 길 + 강조 색 손잡이 */
+.jj.nav .ui-toggle.on { background: var(--accent-soft); }
+.jj.nav .ui-toggle.on::after { background: var(--accent); }
+.jj.nav .ui-stepper { border-radius: var(--r-btn); }
+
+/* ── 경고 빛 줄: 창 위 변 가운데의 가는 줄 하나. 양 끝은 바탕으로 사라진다. 화면 전체를 색으로 두르지 않는다.
+   단계는 길이 · 굵기로도 읽힌다: 빨강 = 3 px · 폭의 56 %, 주황 = 2 px · 폭의 32 %. 움직이지 않는다 (주행 · 정차 모두) ── */
 .jj .nv-edge { position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 60; pointer-events: none; --edge-c: var(--bad); --edge-w: 56%; background: linear-gradient(90deg, transparent calc(50% - var(--edge-w) / 2), var(--edge-c) calc(50% - var(--edge-w) / 4), var(--edge-c) calc(50% + var(--edge-w) / 4), transparent calc(50% + var(--edge-w) / 2)); }
 .jj .nv-edge.orange { --edge-c: var(--alert); --edge-w: 32%; height: 2px; }
 
-/* ── 정차 틀: 머리 136 / 몸통 [막대 104][무대 flex][오른 단 472], 사이 20, 창 가장자리 32. 모두 바탕 위 ── */
-.jj .nv-park { position: absolute; inset: 0; display: flex; flex-direction: column; gap: var(--gap); padding: var(--edge); background: var(--bg); }
+/* ── 정차 틀: [왼 덩어리 flex][오른 단 472], 사이 16, 창 가장자리 좌우 32 · 위아래 24. 모두 바탕 위 ── */
+.jj .nv-park { position: absolute; inset: 0; display: flex; gap: var(--gap); padding: var(--edge-y) var(--edge); background: var(--bg); }
+.jj .nv-left { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
+.jj .nv-aside { position: relative; z-index: 1; flex: none; width: var(--w-aside); min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
+/* 판 (오른 단 · 아래 줄 · 지표 칸 공통): 판 면 + 1 px 둘레 (면 차이 정도) + 모서리 16. 그림자 · 빛 없음 */
+.jj :is(.nv-banner, .nv-right, .nv-kpi, .nv-card, .nv-kindbar, .nv-sum, .nv-calls) { background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-line); border-radius: var(--r-panel); }
 
-/* 판정 머리: [경고등 84][판정 말 verdict][할 일 title + 보조 body 한 줄] … [주 단추 366 x 84]. 카드 · 나눔 선 없이 바탕 위 */
-.jj .nv-banner { position: relative; z-index: 2; flex: none; height: var(--h-banner); display: flex; align-items: center; padding: 0; }
+/* 판 머리 (모든 판 공통): [강조 세모 8 x 10][이름 24 / 600 잉크] … [오른쪽 글 24 / 400 muted]. 머리 아래 선 없음 */
+.jj .nv-phead { flex: none; min-width: 0; height: 28px; display: flex; align-items: center; gap: 10px; font-size: var(--fs-label); font-weight: 600; line-height: 1; color: var(--ink); white-space: nowrap; }
+.jj .tri { flex: none; width: 0; height: 0; border-style: solid; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--accent); }
+.jj .nv-phead > b { flex: none; font-weight: 600; }
+.jj .nv-phead .meta { min-width: 0; margin-left: auto; font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+/* 가는 진행 막대: 길 3 px, 채움 강조 색 */
+.jj .nv-prog { position: relative; flex: none; width: 96px; height: 3px; background: var(--track); border-radius: 2px; overflow: hidden; }
+.jj .nv-prog i { position: absolute; inset: 0; background: var(--accent); border-radius: 2px; transform-origin: left center; transition: transform var(--dur-3) var(--ease-std); }
+
+/* 판정 판 (오른 단 맨 위): 머리 → [표지 44 + 판정 말 44] → 할 일 30 (두 줄까지) → 한 줄 24 → 주 단추 (판 바닥, 폭 가득 x 80) */
+.jj .nv-banner { position: relative; flex: none; min-height: 304px; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+.jj .nv-vrow { flex: none; min-width: 0; height: 52px; margin-top: 8px; display: flex; align-items: center; gap: 12px; }
 .jj .nv-lamp { --sign: inherit; }
 .jj .nv-verdict {
-  flex: none;
-  margin-left: 24px;
+  min-width: 0;
   font-size: var(--fs-display);
   font-weight: 700;
   line-height: var(--lh-tight);
   letter-spacing: var(--tracking-display);
   color: var(--ink);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.jj .nv-todo { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; margin-left: 40px; }
-.jj .nv-todo strong { font-size: var(--fs-title); font-weight: 700; line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jj .nv-todo span { font-size: var(--fs-body); font-weight: 400; line-height: 1.3; color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* 'P 정차 · 운송장' 메타는 머리에 두지 않는다: 무대 왼쪽 위 caption 한 줄 (§10.5-5). 머리 = 판정 · 할 일 · 단추만 */
-/* 주 단추 280 x 64 CSS (설계 366 x 84), 오른 단의 오른끝에 맞춘다 (할 일 글이 짧아도 늘 오른끝) */
-.jj .nv-action { flex: none; width: var(--w-action); margin-left: auto; padding-left: 32px; box-sizing: content-box; display: flex; }
-.jj .nv-action .ui-btn { flex: 1; min-width: 0; height: var(--h-btn); padding: 0 24px; }
-/* 시트가 떠 있으면 파랑은 시트의 주 단추 하나뿐: 덮개 밑 머리 단추는 중립 면으로 */
-.jj.nav[data-sheet] .nv-action .ui-btn.primary { color: var(--ink); background: var(--surface-strong); }
-/* 시트가 떠 있으면 머리의 할 일 글은 감춘다 (시트 가장자리에 반쯤 잘린 문장이 보이지 않게). 판정 말 · 경고등은 남긴다 */
-.jj.nav[data-sheet] .nv-banner .nv-todo { visibility: hidden; }
+.jj .nv-todo { flex: 0 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; overflow: hidden; }
+.jj .nv-todo strong { flex: none; font-size: var(--fs-title); font-weight: 700; line-height: 1.22; letter-spacing: -0.01em; color: var(--ink); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.jj .nv-todo span { flex: none; font-size: var(--fs-body); font-weight: 400; line-height: 1.3; color: var(--body); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-variant-numeric: tabular-nums; }
+.jj .nv-todo span i { font-style: normal; }
+.jj .nv-action { flex: none; margin-top: auto; padding-top: 12px; display: flex; }
+.jj .nv-action .ui-btn { flex: 1; min-width: 0; height: var(--h-primary); padding: 0 24px; }
+/* 시트가 떠 있으면 주 단추 색은 시트의 주 단추 하나뿐: 덮개 밑 판정 판 단추는 중립 면으로 */
+.jj.nav[data-sheet] .nv-action .ui-btn.primary { color: var(--ink); background: var(--surface-strong); box-shadow: none; }
+/* 낮은 넓은 창 (row): 머리 줄 없이 [표지 · 판정 말] → 할 일 → 한 줄 → 주 단추. 판이 남는 높이를 받는다 */
+.jj .shape-row .nv-banner { flex: 1 1 0; min-height: 0; padding: 16px 20px 18px; }
+.jj .shape-row .nv-banner .nv-phead { display: none; }
+.jj .shape-row .nv-vrow { margin-top: 0; }
+.jj .shape-row .nv-todo { margin-top: 4px; gap: 2px; }
+.jj .shape-row .nv-todo span { -webkit-line-clamp: 1; }
+/* 다시 묶기 (row · dense): 판정 판은 내용 높이, 순서 판이 남는 높이. 한 줄은 한 줄 (시각 · 장소는 지표 줄의 '사건' 칸이 보인다 → 여기서는 뺀다) */
+.jj .shape-row.dense .nv-banner { flex: none; padding: 12px 20px 14px; }
+.jj .shape-row.dense .nv-vrow { height: 48px; }
+.jj .shape-row.dense .nv-todo span { -webkit-line-clamp: 1; line-height: 1.25; }
+.jj .shape-row.dense .nv-todo span .when { display: none; }
+/* row · full (1920 x 800 쯤부터): 판정 판은 내용 높이, 그 아래 짐 종류 줄 + 체크 줄을 다 편 할 일 판 (판정 판 가운데 빈 면 없이).
+   할 일 판 머리 48 (정보 단추 76 x 60), 체크 줄은 남는 높이를 나눠 64 ~ 88 */
+.jj .shape-row.row-full .nv-banner { flex: none; }
+.jj .shape-row.row-full .nv-right { flex: 1 1 auto; }
+.jj .shape-row.row-full .nv-rhead { min-height: 48px; }
+.jj .shape-row.row-full .nv-info { height: 60px; margin-top: -6px; margin-bottom: -6px; }
+.jj .shape-row.row-full .nv-rows { flex: 0 1 auto; min-height: 0; }
+.jj .shape-row.row-full .nv-right .ui-check { --h-row: 64px; flex: 1 1 88px; max-height: 88px; padding-top: 4px; padding-bottom: 4px; }
+.jj .shape-row.dense .nv-action { padding-top: 8px; }
+.jj .shape-row.dense .nv-action .ui-btn { height: var(--h-btn); }
 
-.jj .nv-body { flex: 1; min-height: 0; display: flex; gap: var(--gap); }
-.jj .nv-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
-
-/* 왼 막대 (바탕 위, 카드 없음): 보기 셋 (고른 칸 = --select 면 + 잉크 글, 나머지는 면 없이 --muted), 맨 아래 [기록][설정] */
-.jj .nv-rail { position: relative; z-index: 1; flex: none; width: var(--w-rail); min-height: 0; display: flex; flex-direction: column; }
-.jj .nv-rail .ui-seg { --seg-pad: 0px; --seg-gap: 8px; flex: none; height: auto; grid-auto-rows: var(--h-cell); background: transparent; }
-.jj .nv-rail .ui-seg > button { padding: 0; gap: 10px; border-radius: var(--r-md); color: var(--muted); }
-.jj .nv-rail .ui-seg > button[aria-pressed='true'] { color: var(--on-select); }
-.jj .nv-rail .ui-seg > .ind { border-radius: var(--r-md); }
-.jj .nv-rail .grp { flex: none; margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 16px; }
-.jj .nv-rail .grp .ui-cell { flex: none; height: var(--h-cell); color: var(--muted); }
-.jj .nv-rail .ui-seg > button, .jj .nv-rail .ui-cell { font-size: var(--fs-label); }
+/* 도구 줄 (오른 단 맨 위, 높이 76, 바탕 위): 보기 셋 (아이콘 28 위 + 이름 24 / 600 아래) · 틈 12 · [기록][설정].
+   고른 보기 = 강조 면 + 강조 색 아이콘 + 잉크 글 + 아래 2 px 표시 줄. 기록 · 설정 = --muted, 누름 = 버금 면 */
+.jj .nv-rail { position: relative; z-index: 1; flex: none; height: var(--h-cell); display: flex; gap: 12px; }
+.jj .nv-rail .ui-seg { --seg-pad: 0px; --seg-gap: 4px; flex: 1; min-width: 0; height: 100%; grid-auto-flow: column; grid-auto-columns: auto; grid-template-columns: minmax(0, 84fr) minmax(0, 92fr) minmax(0, 124fr); background: transparent; }
+.jj .nv-rail .ui-seg > button { flex-direction: column; gap: 6px; padding: 0; border-radius: var(--r-btn); color: var(--muted); font-size: var(--fs-label); }
+.jj .nv-rail .ui-seg > button[aria-pressed='true'] { color: var(--ink); background: var(--accent-soft); }
+.jj .nv-rail .ui-seg > button[aria-pressed='true']::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 1px; }
+.jj .nv-rail .ui-seg > button:active:not([aria-pressed='true']) { background: var(--surface-strong); }
+.jj .nv-rail .ui-seg > .ind { display: none; }
+/* 센서 키트가 끊김 · 없음: 그 칸 아이콘만 흐리게 (글로 알리지 않는다) */
+.jj .nv-rail:is([data-kit='off'], [data-kit='stale']) .ui-seg > button:nth-child(3) svg { color: var(--muted-soft); }
+.jj .nv-rail .grp { flex: none; display: flex; gap: 4px; }
+.jj .nv-rail .grp .ui-cell { flex: none; width: 76px; height: 100%; gap: 6px; padding: 0; color: var(--muted); font-size: var(--fs-label); border-radius: var(--r-btn); }
 .jj .nv-rail .ui-cell:active { background: var(--surface-strong); }
 
-/* 3D 무대: 판 · 테두리 · 사각형 · 모서리 없음. 바탕 위에 바로, 가운데 --stage-glow 가 가장자리에서 --bg 와 같아진다 */
+/* 3D 무대: 판 · 테두리 · 사각형 · 모서리 없음. 바탕 위에 바로, 가운데 --stage-glow 가 가장자리에서 --bg 와 같아진다. 옅은 격자 바닥 · 발판 선은 장면이 그린다 */
 .jj .nv-stage-wrap { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .jj .nv-stage {
   position: relative;
@@ -103,67 +158,50 @@
   min-height: 0;
   overflow: hidden;
   border-radius: 0;
-  background: radial-gradient(closest-side at 50% 52%, var(--stage-glow) 0%, color-mix(in srgb, var(--stage-glow) 55%, var(--bg)) 55%, var(--bg) 100%);
+  background: radial-gradient(closest-side at 50% 54%, var(--stage-glow) 0%, color-mix(in srgb, var(--stage-glow) 55%, var(--bg)) 55%, var(--bg) 100%);
 }
 /* 무대 안 장면 판의 크기 · 자리 (카메라를 당기고 올린 것과 같다). 장면은 판 비율에 맞춰 적재함을 가운데 넣으므로,
-   판을 무대보다 조금 크게 · 조금 위로 그려 적재함이 무대 폭의 3/4 쯤을 채우고 이름표 바로 아래에서 시작하게 한다.
+   판을 무대보다 조금 크게 그려 적재함이 무대 폭의 58 ~ 64 % 를 채우게 한다 (양옆은 칩 자리).
    --sx 좌우로 내미는 몫, --st 위로 내미는 몫, --sb 아래에서 들이는 몫 (모두 무대 크기의 %) */
-.jj .nv-stage { --sx: 0%; --st: 0%; --sb: 0%; --nx: 0%; --ny: 0%; }
+.jj .nv-stage { --sx: 0%; --st: 0%; --sb: 0%; }
 .jj .nv-stage .bv { inset: calc(-1 * var(--st)) calc(-1 * var(--sx)) var(--sb) calc(-1 * var(--sx)); }
-/* --nx = sx / (100 + 2 sx), --ny = st / (100 + st - sb): 판 안에서 무대 왼쪽 위 모서리의 자리 */
-/* side: 위 이름표 띠가 없으므로 적재함이 몸통 맨 위(12 CSS 아래)에서 시작해 무대 폭의 90 % 를 채운다. 아래 남는 바닥은 알림 독 자리 */
-.jj .shape-side .nv-stage { --sx: 10.5%; --st: 16%; --sb: 3.7%; --nx: 8.678%; --ny: 14.248%; }
-/* 다시 묶기 (장면이 짐에 다가간다: 키 큰 짐 윗면이 무대 위 끝에 닿지 않게 덜 올린다) */
-.jj .shape-side:has(.nv-right.dense) .nv-stage:not([data-view='top']) { --st: 9%; --sb: -3.3%; --ny: 8.014%; }
-/* 1920 x 1080 (무대가 넓적해 장면이 높이에 맞춘다): 장면 판을 무대 높이의 94 % 로, 위에 붙여 앞 보호 틀 윗변이 잘리지 않게 (판 비율은 1.55 그대로) */
-.jj.nav[data-layout='wide'] .shape-side .nv-stage:not([data-view='top']) { --sx: 0.5%; --st: 0%; --sb: 6%; --nx: 0.495%; --ny: 0%; }
-.jj .shape-row .nv-stage { --sx: 8%; --st: 5%; --sb: -3%; --nx: 6.897%; --ny: 4.630%; }
-/* 위에서 보기 (직교, 이름표 밑을 비워 두고 맞춘다) 는 판을 무대 크기 그대로 */
-.jj .nv-stage[data-view='top'] { --sx: 0%; --st: 0%; --sb: 0%; --nx: 0%; --ny: 0%; }
-/* 이름표는 판이 아니라 무대에 맞춘다: 무대 왼쪽 24, 위 8 (칸 이름 · 막대 첫 칸과 같은 윗줄) */
-.jj .nv-stage .bv-name { left: calc(var(--nx) + 24px); top: calc(var(--ny) + 8px); }
 /* 장면 판은 비운다 (무대의 빛이 비친다). 3D 쪽 스튜디오 판(::before)은 무대가 대신하므로 끈다 */
 .jj .nv-stage .bv { background: transparent; }
 .jj .nv-stage .bv::before { display: none; }
 .jj .nv-stage .bv-front { display: none !important; }
 /* '앞' 글은 바닥 꺾쇠 옆에 칠한 것만 둔다 (허공에 뜨는 대체 글은 뺀다) */
 .jj .nv-stage .bv-dir:not(.on-deck) { display: none !important; }
-/* 무대 위 글은 한 모양: 이름표 = 왼쪽 위 caption 한 줄 ('P 정차 · KR-2611-6378'), 꼬리표 = 어두운 알약 40 CSS (설계 52)
-   [상태 점 10][label 18 / 600 잉크], 상태 색 1.5 CSS 끌어 선. 순서 배지 = --select 동그라미 + 잉크 숫자 */
-.jj .nv-stage .bv { --bv-h: 48px; --bv-fs: 24px; --bv-pad: 20px; --bv-gap: 14px; --bv-dot: 13px; --bv-r: 11px; --bv-inset: 24px; --bv-badge: 52px; --bv-badge-fs: 26px; --bv-dir-fs: 24px; }
-.jj .nv-stage .bv-name { height: 40px; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
-.jj .nv-stage .bv-tag { color: var(--ink); border-radius: var(--bv-r); }
-.jj .nv-stage .bv-tag b { font-size: var(--fs-label); font-weight: 500; }
-.jj .nv-stage .bv-badge { color: var(--ink); }
+/* 무대 위 칩 (§11.5-4): 상태 칩 높이 40 · 글 22, 정보 칩 이름 줄 30 · 값 줄 26 · 안쪽 10 14 · 최소 폭 168, 순서 배지 44 · 숫자 24 */
+.jj .nv-stage .bv { --bv-h: 40px; --bv-fs: var(--fs-chip); --bv-pad: 14px; --bv-gap: 10px; --bv-r: var(--r-chip); --bv-inset: 24px; --bv-badge: 44px; --bv-badge-fs: 24px; --bv-dir-fs: 22px; --bv-row-h: 30px; --bv-row: 26px; --bv-ipad: 10px 14px; --bv-imin: 168px; }
 /* 키트 표시 (위 띠): 센서 키트 외곽선 아이콘 + 글 (상태 색 없음). 끊기면 아이콘을 흐리게 */
 .jj .nv-kit { display: inline-flex; align-items: center; gap: 6px; vertical-align: bottom; white-space: nowrap; }
 .jj .nv-kit svg { flex: none; width: 28px; height: 28px; color: var(--body); }
 .jj .nv-kit.stale svg { color: var(--muted-soft); }
 .jj .nv-loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: var(--fs-label); font-weight: 600; color: var(--muted); }
 
-/* 알림 (무대 안 토스트 · 지금 말하는 문장): 무대 아래 가운데, 아래 24 CSS (설계 32), 높이 64 CSS (84), 폭은 글만큼 최대 560 CSS (732).
-   [상태 점 12 CSS][글 body 한 줄]. 면 --surface-soft 94 % + --e-1, 테두리 없음, 모서리 16 CSS. 정차 중 듣는 중 알약도 이 자리 */
-.jj .nv-dock { position: absolute; left: 0; right: 0; bottom: 32px; z-index: 20; display: flex; justify-content: center; padding: 0 32px; pointer-events: none; }
+/* 알림 (무대 안 토스트 · 지금 말하는 문장): 무대 아래 가운데, 아래 24, 높이 76, 폭은 글만큼.
+   [상태 점 10][글 body 한 줄]. 우물 면 + 1 px --chip-line + --e-1, 모서리 14. 정차 중 듣는 중 알약도 이 자리 */
+.jj .nv-dock { position: absolute; left: 0; right: 0; bottom: 24px; z-index: 20; display: flex; justify-content: center; padding: 0 32px; pointer-events: none; }
 .jj .nv-notice {
   max-width: min(880px, 100%);
-  height: 84px; /* 64 CSS, 한 줄 */
+  height: 76px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 32px 0 28px;
+  gap: 14px;
+  padding: 0 28px 0 24px;
   font-size: var(--fs-body);
   font-weight: 400;
   line-height: 1.2;
   color: var(--ink);
   white-space: nowrap;
   background: color-mix(in srgb, var(--surface-soft) 94%, transparent);
-  border-radius: var(--r-md);
-  box-shadow: var(--e-1);
+  box-shadow: inset 0 0 0 1px var(--chip-line), var(--e-1);
+  border-radius: var(--r-btn);
 }
 /* 기록 화면: 창 아래 가운데 */
 .jj .nv-dock-root { z-index: 30; }
-.jj .nv-notice > i { flex: none; width: 16px; height: 16px; border-radius: var(--r-full); background: var(--c); }
-.jj .nv-dock .ui-listen { height: 84px; gap: 12px; padding: 0 32px 0 24px; font-size: var(--fs-body); pointer-events: auto; }
+.jj .nv-notice > i { flex: none; width: 10px; height: 10px; border-radius: var(--r-full); background: var(--c); }
+.jj .nv-dock .ui-listen { height: 76px; gap: 12px; padding: 0 32px 0 24px; font-size: var(--fs-body); pointer-events: auto; }
 .jj .nv-dock .ui-listen svg { width: 28px; height: 28px; }
 .jj .nv-dock .ui-level { height: 24px; gap: 4px; }
 .jj .nv-dock .ui-level i { width: 4px; border-radius: 2px; }
@@ -171,173 +209,226 @@
 .jj.nav .ui-listen { gap: 12px; color: var(--ink); background: var(--surface-strong); }
 .jj.nav .ui-listen > b { margin-left: 4px; }
 .jj.nav .ui-listen > span:last-child { margin-left: calc(0.26em - 12px); }
+/* 자세히 설명 한 줄 (높은 창): 무대 아래 가운데 (알림이 뜨면 비킨다). 3D 위 칩과 같은 면 */
+.jj .nv-limit-note { position: absolute; left: 50%; bottom: 24px; z-index: 19; transform: translateX(-50%); width: max-content; max-width: calc(100% - 64px); padding: 14px 24px; font-size: var(--fs-caption); font-weight: 400; line-height: 1.35; color: var(--body); text-align: center; background: var(--chip-bg); box-shadow: inset 0 0 0 1px var(--chip-line); border-radius: var(--r-btn); pointer-events: none; }
+.jj .nv-stage:has(.nv-notice, .ui-listen) .nv-limit-note { display: none; }
 
-/* 계기 칸 (테두리 없음): 이름 label muted -> 값 value 잉크 -> 막대 4 CSS (기준 눈금 2 x 12 CSS) -> 기준 caption. 상태는 막대 색과 점 8 CSS 만 */
-.jj .nv-tiles { position: relative; z-index: 1; flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
-.jj .nv-tiles .ui-tile { height: var(--h-tile); min-height: 0; justify-content: center; gap: 0; }
-.jj .nv-aside .nv-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.jj.nav .ui-tile { --tile-dot: 10px; --tile-bar: 5px; --tile-tick-w: 3px; --tile-tick-h: 16px; }
-.jj.nav .ui-tile-head { height: 29px; }
-.jj.nav .ui-tile-head .nm { line-height: 1.15; }
-.jj.nav .ui-tile-val { margin-top: 2px; }
-.jj.nav .ui-tile-val b { line-height: 1; }
-.jj.nav .ui-tile-val:is(.word, :has(> b > .txt)) { min-height: var(--fs-value); }
-.jj.nav .ui-tile-bar { margin-top: 8px; }
-/* 막대가 없는 칸도 같은 자리를 비워 둔다 (칸 넷의 값 · 기준 줄 높이가 맞게) */
-.jj.nav .ui-tile-bar.none { display: block; visibility: hidden; }
-.jj.nav .ui-tile-foot { margin-top: 6px; line-height: 1.15; }
-/* 칸은 네 가지만 (이름 · 값 · 막대 · 기준): 둘째 보조 줄은 내비에서 뺀다 */
-.jj.nav .ui-tile-sub { display: none !important; }
-/* 상태 색은 점 · 막대에만. 빨강 칸도 면은 다른 칸과 같은 카드 면 */
-.jj.nav .ui-tile.tone-red { background: var(--canvas); }
-.jj.nav button.ui-tile:active, .jj.nav button.ui-tile.tone-red:active { background: var(--surface-soft); }
-.jj.nav .ui-tile.tone-red .ui-tile-bar { background: var(--surface-strong); }
-.jj.nav .ui-tile.sel { background: var(--select); }
-.jj.nav .ui-tile.sel .ui-tile-bar { background: var(--canvas); }
-/* 칸 머리: 이름과 기준 사이를 띄우고 기준은 늘 오른쪽 끝 (점 바로 앞) */
-.jj.nav .ui-tile-head { gap: 16px; }
-.jj.nav .ui-tile-head .cap { flex: none; margin-left: auto; }
-.jj.nav .ui-tile-head :is(.cap, .ui-chip) + .dot { margin-left: -8px; }
-/* side (1224 x 880 · 1920 x 1080): 칸 2 x 2 는 --h-tile 에서 시작해 오른 단에 남는 높이를 --h-tile-max 까지 받는다 */
-.jj .shape-side .nv-aside > .nv-tiles { flex: 1 0 auto; grid-template-rows: repeat(2, minmax(var(--h-tile), 1fr)); max-height: calc(2 * var(--h-tile-max) + var(--gap)); }
-.jj :is(.shape-side, .shape-row) .nv-tiles .ui-tile { height: auto; }
-/* row (1920 x 720 ~ 1000): 1224 와 같은 [막대][무대 flex][오른 단 472] (셋째 단 없음, 무대가 창 폭의 60 % 넘게).
-   오른 단 = 칸 2 x 2 (남는 높이) -> 눈으로 확인 줄 72 (누르면 시트) -> 버금 단추 72. 터치 72 = 72 CSS (61 이상)
-   다시 묶기(dense): 순서 카드가 오른 단을 다 쓰고, 칸 넷은 무대 아래 한 줄 */
-.jj .shape-row .nv-aside > .nv-tiles { flex: 1 1 0; min-height: 0; grid-template-rows: repeat(2, minmax(0, 1fr)); --tile-pad: 10px 22px; }
-.jj .shape-row .nv-aside .nv-foot .ui-btn, .jj .shape-row .nv-sum { height: 72px; }
-.jj .shape-row .nv-main > .nv-tiles { flex: none; height: 124px; grid-template-columns: repeat(4, minmax(0, 1fr)); --tile-pad: 12px 22px; }
-.jj .shape-row .nv-main > .nv-tiles .nv-calls { grid-column: span 2; height: 124px; }
-.jj .shape-row.dense .nv-aside > .nv-right { flex: 1 1 auto; }
-/* 눈으로 확인 줄 (row): 카드 면 한 줄 [이름 heading][0 / 2][›]. 누르면 같은 카드가 오른쪽 시트로 */
-.jj .nv-sum { flex: none; height: var(--h-btn); display: flex; align-items: center; gap: 14px; padding: 0 20px 0 var(--row-pad); border: 0; border-radius: var(--r-lg); color: var(--ink); background: var(--canvas); text-align: left; transition: background-color var(--dur-1) var(--ease-std); }
+/* ── 지표 줄 (무대 위, 높이 76): 버티는 제동 (넓은 칸: 오른쪽에 막대 · 기준) + 셋. 사이 12 ── */
+.jj .nv-tiles { position: relative; z-index: 1; flex: none; height: var(--h-kpi); display: grid; grid-template-columns: minmax(0, 372fr) repeat(3, minmax(0, 320fr)); gap: 12px; }
+/* 정차 3D 확인 (넓은 창): 앞벽 칸은 값 줄에 '안 붙임 … 붙이면 기준 0.50' 이 들어가게 넓게, 짐 · 벨트 칸은 그만큼 좁게 */
+.jj.nav[data-layout='wide'] .nv-park:not(.dense) .nv-tiles { grid-template-columns: minmax(0, 372fr) minmax(0, 288fr) minmax(0, 288fr) minmax(0, 384fr); }
+/* 지표 칸: [둥근 아이콘 44: 1 px 강조 테두리 + 강조 색 선 아이콘 22] 12 [이름 24 / 500 muted … 기준 글 / 값 30 / 700 잉크 + 단위 24 muted … 보조 글 24 muted] */
+.jj .nv-kpi { --c: var(--muted-soft); position: relative; min-width: 0; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 18px 0 16px; border: 0; text-align: left; color: var(--ink); transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
+.jj .nv-kpi.tone-green { --c: var(--ok); }
+.jj .nv-kpi.tone-orange { --c: var(--alert); }
+.jj .nv-kpi.tone-red { --c: var(--bad); }
+.jj .nv-kpi.tone-grey { --c: var(--none); }
+.jj button.nv-kpi { --press-scale: 0.985; }
+.jj button.nv-kpi:active { background: var(--surface-soft); }
+.jj .nv-kpi.sel { background: var(--accent-soft); }
+.jj .nv-kpi .ic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; color: var(--accent); border-radius: var(--r-full); box-shadow: inset 0 0 0 1px var(--accent-hair); }
+.jj .nv-kpi .ic svg { width: 22px; height: 22px; }
+.jj .nv-kpi .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+/* 이름 줄: 보조 글 · 기준 글은 오른쪽 끝. 자리가 모자라면 통째로 빠진다 (잘린 글자 없이: 다음 줄로 넘어가 가려진다) */
+.jj .nv-kpi .nm { height: 28px; display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; overflow: hidden; font-size: var(--fs-label); font-weight: 500; line-height: 28px; color: var(--muted); white-space: nowrap; }
+.jj .nv-kpi .nm b { font-weight: 500; }
+.jj .nv-kpi .nm .dot { flex: none; width: 8px; height: 8px; background: var(--c); border-radius: var(--r-full); }
+.jj .nv-kpi .nm em { margin-left: auto; font-style: normal; font-weight: 400; font-variant-numeric: tabular-nums; }
+.jj .nv-kpi .nm em + em { margin-left: 4px; }
+.jj .nv-kpi .nm em.mark { color: var(--accent-2); }
+.jj .nv-kpi .vl { height: 34px; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.jj .nv-kpi .vl b { font-size: var(--fs-kpi); font-weight: 700; line-height: 34px; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.jj .nv-kpi .vl.word b { font-size: 28px; letter-spacing: -0.01em; }
+.jj .nv-kpi .vl small { font-size: var(--fs-caption); font-weight: 400; color: var(--muted); }
+/* 보조 글 ('박스' · '라쳇' · '붙이면 기준 0.50'): 값 줄 오른쪽 끝. 자리가 모자라면 통째로 빠진다 (다음 줄로 넘어가 가려진다) */
+.jj .nv-kpi .vl.has-note { flex-wrap: wrap; align-content: flex-start; overflow: hidden; }
+.jj .nv-kpi .vl .note { margin-left: auto; padding-left: 10px; font-style: normal; font-size: var(--fs-caption); font-weight: 400; line-height: 34px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* 막대 (버티는 제동 · 방금 받은 제동): 값 줄의 남는 폭. 길 4 px, 채움 상태 색, 기준 눈금 2 x 12 는 둘째 강조 색 */
+.jj .nv-kpi .vl .bar { position: relative; align-self: center; flex: 1 1 0; min-width: 32px; max-width: 200px; height: 4px; margin: 2px 2px 0 10px; background: var(--track); border-radius: 2px; }
+.jj .nv-kpi .vl .bar i { position: absolute; inset: 0; background: var(--c); border-radius: 2px; transform-origin: left center; transition: transform var(--dur-count) var(--ease-std); animation: ui-bar-in var(--dur-count) var(--ease-std) both; }
+/* 상태가 없는 칸의 막대는 중립 회색 (강조 색은 값 · 상태를 뜻하지 않는다, §11.10) */
+.jj .nv-kpi.neutral .vl .bar i { background: var(--none); }
+.jj .nv-kpi .vl .bar s { position: absolute; top: -4px; width: 2px; height: 12px; margin-left: -1px; background: var(--accent-2); border-radius: 1px; }
+/* 신고 전화 (짐 이탈 의심): 지표 줄의 뒤 두 칸 자리에 누르는 전화 둘 [전화 아이콘 동그라미 44][도로 이름 24 / 번호 26 · 600] */
+.jj .nv-calls { grid-column: span 2; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; padding: 0; overflow: hidden; }
+.jj .nv-call { min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; color: var(--ink); text-decoration: none; transition: background-color var(--dur-1) var(--ease-std); -webkit-tap-highlight-color: transparent; }
+.jj .nv-call:active { background: var(--surface-soft); }
+.jj .nv-call + .nv-call { background-image: linear-gradient(var(--hairline), var(--hairline)); background-repeat: no-repeat; background-size: 1px calc(100% - 28px); background-position: 0 14px; }
+.jj .nv-call .ic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; color: var(--accent); background: var(--accent-soft); border-radius: var(--r-full); }
+.jj .nv-call .ic svg { width: 22px; height: 22px; }
+.jj .nv-call .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.jj .nv-call .tx span { font-size: var(--fs-label); font-weight: 500; line-height: 28px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jj .nv-call .tx b { font-size: var(--fs-heading); font-weight: 600; line-height: 32px; color: var(--ink); white-space: nowrap; }
+.jj .nv-call .chev { flex: none; width: 28px; height: 28px; color: var(--muted-soft); }
+
+/* ── 아래 줄 카드 (높은 창의 정차 3D 확인, 높이 164): [계산 근거][짐 종류]. 판 모양, 안쪽 16 20, 머리 28 ── */
+.jj .nv-strip { position: relative; z-index: 1; flex: none; height: var(--h-strip); display: grid; grid-template-columns: minmax(0, 780fr) minmax(0, 572fr); gap: var(--gap); }
+.jj .nv-card { position: relative; min-width: 0; display: flex; flex-direction: column; padding: 16px 20px; border: 0; text-align: left; color: var(--ink); overflow: hidden; transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
+.jj button.nv-card { --press-scale: 0.985; }
+.jj button.nv-card:active { background: var(--surface-soft); }
+.jj .nv-card.sel { background: var(--accent-soft); }
+.jj .nv-card-empty { margin: auto 0; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); }
+.jj .nv-phead .meta b { margin-left: 10px; font-weight: 600; color: var(--ink); }
+/* 계산 근거: 한 줄 문장 26 / 600 + 값 넷 한 줄 (이름 24 muted / 값 26 · 600) */
+.jj .nv-card.facts strong { flex: none; margin-top: 6px; font-size: var(--fs-heading); font-weight: 600; line-height: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.jj .nv-card.facts .cells { margin-top: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.jj .nv-card.facts .cell { min-width: 0; display: flex; flex-direction: column; }
+.jj .nv-card.facts .cell span { font-size: var(--fs-caption); font-weight: 400; line-height: 26px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jj .nv-card.facts .cell b { font-size: var(--fs-heading); font-weight: 600; line-height: 28px; white-space: nowrap; }
+
+/* ── 오른 단 할 일 판 아래의 판 (높은 창): 할 일 판은 내용 높이, 이 판이 남는 높이 ── */
+.jj .has-extra .nv-right { flex: 0 1 auto; }
+/* 눈으로 확인이 셋이면 줄을 76 으로 (벨트 장력 판의 막대가 납작해지지 않게) */
+.jj .has-extra .nv-right:not(.dense) .nv-rows:has(> :nth-child(3)) .ui-check { --h-row: 76px; padding-top: 4px; padding-bottom: 4px; }
+.jj .has-extra .nv-aside > .nv-card { flex: 1 1 0; min-height: 178px; padding: 14px 20px; }
+/* 벨트 장력: [값 줄 28: 막대마다 값 (셋까지)] / [막대 (판 높이를 따라 늘어난다) + 기준 점선 … 그 오른쪽 끝에 '기준 … N'] / [이름 줄 28].
+   막대는 폭 28, 판 폭에 고르게 편다 (기준 글 자리 --lab 을 뺀 폭). 잰 값 = 강조 색 채움, 추정 = 강조 색 테두리 + 옅은 강조 면 (18 %), 고무바 = 흐린 테두리.
+   기준 = 둘째 강조 색 점선, 글은 점선 오른쪽 끝 (판 면으로 점선을 끊고 그 자리에) */
+.jj .nv-card.belts .plot { --lab: 0px; flex: 1 1 0; min-height: 0; margin-top: 8px; display: flex; flex-direction: column; }
+.jj .nv-card.belts .plot.has-need { --lab: 164px; }
+.jj .nv-card.belts .cols { flex: none; min-width: 0; width: calc(100% - var(--lab)); display: grid; justify-content: space-around; justify-items: center; }
+.jj .nv-card.belts .vals { flex: none; height: 28px; display: flex; align-items: center; font-size: var(--fs-caption); line-height: 28px; white-space: nowrap; }
+.jj .nv-card.belts .vals em { font-style: normal; font-weight: 500; color: var(--ink); }
+.jj .nv-card.belts .chart { position: relative; flex: 1 1 0; min-height: 0; margin-top: 4px; display: flex; box-shadow: 0 1px 0 var(--hairline-strong); }
+.jj .nv-card.belts .chart .cols { align-items: stretch; }
+.jj .nv-card.belts .area { position: relative; width: 100%; min-height: 0; }
+.jj .nv-card.belts .area i { position: absolute; left: 50%; bottom: 0; width: 28px; min-height: 4px; margin-left: -14px; border-radius: 5px 5px 0 0; box-sizing: border-box; }
+.jj .nv-card.belts .area i.meas { background: var(--accent); }
+.jj .nv-card.belts .area i.est { background: color-mix(in srgb, var(--accent) 18%, transparent); border: 1.5px solid var(--accent); border-bottom: 0; }
+.jj .nv-card.belts .area i.none { border: 1.5px dashed var(--muted-soft); border-bottom: 0; }
+.jj .nv-card.belts .plot.many .area i { width: 16px; margin-left: -8px; border-radius: 4px 4px 0 0; }
+.jj .nv-card.belts .chart .need { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed var(--accent-2); }
+.jj .nv-card.belts .chart .need em { position: absolute; right: 0; top: 0; transform: translateY(-50%); padding-left: 12px; font-style: normal; font-size: var(--fs-caption); font-weight: 400; line-height: 28px; color: var(--accent-2); white-space: nowrap; background: var(--panel); }
+.jj .nv-card.belts .names { flex: none; height: 30px; align-items: center; font-size: var(--fs-caption); font-weight: 400; line-height: 30px; color: var(--muted); white-space: nowrap; }
+/* 방금 받은 힘 (다시 묶기): 가로 눈금 0 … 1.2 g. 받은 힘 = 상태 색, 버틴 힘 = 강조 색 점, 기준 = 둘째 강조 색 눈금. 그 아래 값 세 줄 */
+.jj .has-extra .nv-aside > .nv-card.force { min-height: 184px; }
+.jj .has-extra .nv-right.dense .ui-check { --h-row: 84px; }
+.jj.nav[data-layout='wide'] .has-extra .nv-right.dense:has(.nv-ask) .nv-note { display: none; }
+.jj .has-extra .nv-right.dense:has(.nv-ask) { padding-bottom: 20px; }
+.jj .nv-card.force .track { position: relative; flex: none; height: 6px; margin: auto 8px; background: var(--track); border-radius: 3px; }
+.jj .nv-card.force .track .fill { position: absolute; left: 0; top: 0; bottom: 0; background: color-mix(in srgb, var(--bad) 55%, var(--track)); border-radius: 3px; }
+.jj .nv-card.force .track s { position: absolute; top: -7px; width: 2px; height: 20px; margin-left: -1px; background: var(--accent-2); border-radius: 1px; }
+.jj .nv-card.force .track .pt { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: var(--r-full); box-shadow: 0 0 0 3px var(--panel); }
+.jj .nv-card.force .track .pt.peak { background: var(--bad); }
+.jj .nv-card.force .track .pt.held { background: var(--accent); }
+.jj .nv-card.force .legend { flex: none; display: flex; flex-direction: column; font-size: var(--fs-caption); color: var(--muted); white-space: nowrap; }
+.jj .nv-card.force .legend span { height: 30px; display: flex; align-items: center; gap: 10px; }
+.jj .nv-card.force .legend b { margin-left: auto; font-weight: 600; color: var(--ink); }
+.jj .nv-card.force .legend i { flex: none; width: 10px; height: 10px; border-radius: var(--r-full); }
+.jj .nv-card.force .legend .peak i { background: var(--bad); }
+.jj .nv-card.force .legend .held i { background: var(--accent); }
+.jj .nv-card.force .legend .crit i { width: 2px; height: 16px; margin: 0 4px; border-radius: 1px; background: var(--accent-2); }
+/* 짐 종류: 짐 그림 다섯 (그림 30 + 이름 24). 지금 짐 = 강조 면 + 강조 색 그림 + 잉크 글. 전체가 단추 하나 → 상차 시트 */
+.jj .nv-kindbar { position: relative; flex: none; min-width: 0; height: 88px; display: flex; flex-direction: column; justify-content: center; padding: 0 8px; border: 0; text-align: left; color: var(--ink); --press-scale: 0.985; transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
+.jj .nv-kindbar:active { background: var(--surface-soft); }
+.jj .nv-kindbar .list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.jj .nv-kindbar .k { position: relative; min-width: 0; height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: var(--fs-label); font-weight: 500; line-height: 1.1; color: var(--muted); white-space: nowrap; border-radius: 12px; }
+.jj .nv-kindbar .k svg { flex: none; width: 30px; height: 30px; }
+.jj .nv-kindbar .k.on { font-weight: 600; color: var(--ink); background: var(--accent-soft); }
+.jj .nv-kindbar .k.on svg { color: var(--accent); }
+.jj .nv-kindbar .k.on::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 1px; }
+.jj .nv-kindbar.card { height: auto; justify-content: flex-start; padding: 16px 20px 12px; }
+.jj .nv-kindbar.card .list { margin-top: auto; }
+.jj .nv-kindbar.card .go { margin-left: auto; font-weight: 600; color: var(--accent-text); }
+
+/* 눈으로 확인 줄 (row): 판 한 줄 [세모][이름] … [진행 막대][0 / 2][›]. 누르면 같은 판이 오른쪽 시트로 */
+.jj .nv-sum { flex: none; height: var(--h-btn); display: flex; align-items: center; gap: 12px; padding: 0 12px 0 var(--row-pad); border: 0; color: var(--ink); text-align: left; transition: background-color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
 .jj .nv-sum:active { background: var(--surface-soft); }
-.jj .nv-sum > b { flex: 1; min-width: 0; font-size: var(--fs-heading); font-weight: 600; line-height: 1.2; white-space: nowrap; }
+.jj .nv-sum > b { flex: 1; min-width: 0; font-size: var(--fs-label); font-weight: 600; line-height: 1.2; white-space: nowrap; }
 .jj .nv-sum > small { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); white-space: nowrap; }
-.jj .nv-sum > small svg { width: 26px; height: 26px; color: var(--ink); }
-.jj .nv-sum > svg { flex: none; width: 32px; height: 32px; color: var(--muted); }
+.jj .nv-sum > small svg { width: 24px; height: 24px; color: var(--accent); }
+.jj .nv-sum > svg { flex: none; width: 28px; height: 28px; color: var(--muted); }
 .jj .nv-sum:disabled > svg { visibility: hidden; }
-/* 눈으로 확인 시트: 시트 면 위에 카드 내용 그대로 (카드 면 없이) */
+/* 눈으로 확인 시트: 시트 면 위에 판 내용 그대로 (판 면 없이) */
 .jj .nv-sheet.eye { width: 640px; }
-.jj .nv-sheet.eye .nv-right.in-sheet { flex: 0 1 auto; padding: 0 16px 8px; background: transparent; border-radius: 0; }
-/* 시트 머리에 [눈으로 확인 0 / 2] (카드 머리 줄은 정보 단추만 오른쪽에 남겨 체크 줄 위에 겹친다) */
+.jj .nv-sheet.eye .nv-right.in-sheet { flex: 0 1 auto; padding: 0 16px 8px; background: transparent; box-shadow: none; border-radius: 0; }
+/* 시트 머리에 [눈으로 확인 0 / 2] (판 머리 줄은 감춘다) */
 .jj .nv-sheet.eye .nv-sheet-head h2 small { margin-left: 16px; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); }
 .jj .nv-sheet.eye .nv-right.in-sheet .nv-rhead { display: none; }
 .jj .nv-sheet.eye .nv-sheet-foot { margin-top: auto; padding-top: 16px; }
 
-/* 오른 단: (side 는 칸 2 x 2 ->) 할 일 카드 (내용 높이만큼, 카드 안 빈 면 없음) -> 버금 단추 둘 (높이 84, 단 바닥) */
-.jj .nv-aside { position: relative; z-index: 1; flex: none; width: var(--w-aside); min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
-.shape-side .nv-aside { width: var(--w-side); }
-.jj .nv-right { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 4px 0 8px; background: var(--canvas); border-radius: var(--r-lg); scrollbar-width: none; }
-/* 1920 x 1080 에서 할 일 줄이 셋이면 줄을 조인다 (칸 · 카드 · 버금 단추가 잘리지 않고 다 들어가게) */
-.jj.nav[data-size='lg'] .nv-right:has(.nv-rows > :nth-child(3)) .ui-check { min-height: 92px; padding-top: 8px; padding-bottom: 8px; }
-.jj .nv-rhead { flex: none; min-height: 80px; display: flex; align-items: center; gap: 12px; padding: 4px 10px 0 var(--row-pad); font-size: var(--fs-heading); font-weight: 600; line-height: 1.25; color: var(--ink); white-space: nowrap; }
-.jj .nv-rhead > :first-child { flex: 1; min-width: 0; }
+/* 할 일 판 (오른 단): 머리 60 [세모 · 이름 · 진행 막대 · 0 / 2 · 정보 단추 76] → 체크 줄 88. 남는 높이를 받는다 (판 바닥은 여백) */
+.jj .nv-right { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 0 0 8px; scrollbar-width: none; }
+.jj .nv-rhead { height: auto; min-height: 60px; gap: 12px; padding: 0 var(--row-pad); }
+.jj .nv-rhead > b { flex: 1; min-width: 0; }
 .jj .nv-rhead small { flex: none; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
-.jj .nv-rhead em { margin-left: 16px; font-style: normal; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); }
-.jj .nv-rhead small:last-child { padding-right: 16px; }
-/* 정보 단추 (80 x 80 터치, 아이콘 32): 누르면 카드 머리 아래에 보조 글 한 줄 */
-.jj .nv-info { flex: none; width: 80px; height: 80px; display: grid; place-items: center; border: 0; border-radius: var(--r-full); color: var(--muted); background: transparent; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
-.jj .nv-info svg { width: 32px; height: 32px; }
+.jj .nv-rhead em { flex: 1; min-width: 0; margin-left: -4px; font-style: normal; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.jj .nv-rhead:has(> em) > b { flex: none; }
+/* 정보 단추 (76 x 76 터치, 아이콘 28): 누르면 판 머리 아래에 보조 글 */
+.jj .nv-info { flex: none; width: 76px; height: 76px; margin-right: -16px; display: grid; place-items: center; border: 0; border-radius: var(--r-full); color: var(--muted); background: transparent; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std); }
+.jj .nv-info svg { width: 28px; height: 28px; }
 .jj .nv-info:active { background: var(--surface-soft); }
-.jj .nv-info[aria-expanded='true'] { color: var(--ink); background: var(--surface-soft); }
-.jj .nv-info-text { flex: none; margin: 0 var(--row-pad) 8px; padding: 14px 20px; font-size: var(--fs-caption); font-weight: 400; line-height: 1.35; color: var(--body); background: var(--surface-soft); border-radius: var(--r-sm); }
+.jj .nv-info[aria-expanded='true'] { color: var(--accent); background: var(--accent-soft); }
+.jj .nv-info-text { flex: none; margin: 0 var(--row-pad) 8px; padding: 12px 16px; font-size: var(--fs-caption); font-weight: 400; line-height: 1.35; color: var(--body); background: var(--surface-soft); border-radius: 12px; }
 .jj .nv-rows { flex: none; display: flex; flex-direction: column; }
-/* 할 일 줄: 체크 칸이 왼쪽, 그다음 순서 배지(--select 동그라미 + 잉크 숫자), 글 */
-.jj .nv-right .ui-check { gap: 20px; }
+/* 할 일 줄 88: 체크 칸이 왼쪽, 그다음 순서 배지, 글 */
+.jj .nv-right .ui-check { --h-row: 88px; gap: 16px; padding-top: 8px; padding-bottom: 8px; }
 .jj .nv-right .ui-check .box { order: -1; }
-.jj .nv-note { flex: none; margin: 0; padding: 12px var(--row-pad) 16px; font-size: var(--fs-caption); font-weight: 400; line-height: 1.35; color: var(--muted); }
+.jj .nv-right .ui-check .tx { gap: 2px; }
+.jj .nv-right .ui-check .tx b { line-height: 1.2; }
+.jj .nv-note { flex: none; margin: 0; padding: 8px var(--row-pad) 8px; font-size: var(--fs-caption); font-weight: 400; line-height: 1.3; color: var(--muted); }
 .jj .nv-right > .nv-note:last-child { margin-top: auto; }
-.jj .nv-empty { margin: 0; padding: 8px var(--row-pad) 24px; font-size: var(--fs-body); font-weight: 400; line-height: var(--lh-body); color: var(--body); }
+.jj .nv-empty { margin: 0; padding: 4px var(--row-pad) 20px; font-size: var(--fs-body); font-weight: 400; line-height: var(--lh-body); color: var(--body); }
 .jj .nv-foot { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
-/* 오른 단은 창 바닥까지 (§10.5-3): 버금 단추는 단 바닥에 붙고, 할 일 카드가 남는 높이를 받는다 (카드 바닥 글은 카드 바닥에) */
-.jj .nv-aside > .nv-foot { margin-top: auto; }
-.jj .shape-side .nv-aside > .nv-right { flex: 1 1 auto; }
 .jj .nv-foot .ui-btn { height: var(--h-btn); min-width: 0; padding: 0 12px; }
-.jj .nv-ask { flex: none; display: flex; flex-direction: column; padding-top: 4px; }
-.jj .nv-ask > b { margin: 0 var(--row-pad); padding: 8px 0 12px; font-size: var(--fs-row); font-weight: 600; line-height: 1.3; }
+.jj .nv-ask { flex: none; display: flex; flex-direction: column; padding-top: 2px; }
+.jj .nv-ask > b { margin: 0 var(--row-pad); padding: 4px 0 8px; font-size: var(--fs-label); font-weight: 600; line-height: 1.2; }
 .jj .nv-ask .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 var(--row-pad); }
 .jj .nv-ask .pair .ui-btn { height: var(--h-btn); min-width: 0; padding: 0 12px; }
-.jj .nv-ask .done { display: flex; align-items: center; gap: 12px; min-height: var(--h-btn); margin: 0 var(--row-pad); padding: 0 20px; font-size: var(--fs-label); font-weight: 600; color: var(--ink); background: var(--surface-soft); border-radius: var(--r-md); }
-.jj .nv-ask .done svg { flex: none; width: 32px; height: 32px; color: var(--ink); }
-/* 다시 묶기 (내용이 많은 카드): '밀렸나요?' 두 단추와 바닥 글까지 스크롤 없이 들어가게 줄을 조인다 */
-.jj .nv-right.dense .ui-check { min-height: 92px; padding-top: 8px; padding-bottom: 8px; }
-.jj .nv-right.dense .nv-rhead { min-height: 72px; }
+.jj .nv-ask .done { display: flex; align-items: center; gap: 12px; min-height: var(--h-btn); margin: 0 var(--row-pad); padding: 0 20px; font-size: var(--fs-label); font-weight: 600; color: var(--ink); background: var(--surface-soft); border-radius: var(--r-btn); }
+.jj .nv-ask .done svg { flex: none; width: 28px; height: 28px; color: var(--accent); }
+/* 다시 묶기 (줄이 많은 판): 낮은 넓은 창에서는 머리 44 · 줄 72, '밀렸나요?' 가 있으면 바닥 글은 뺀다 (스크롤 없이 다 들어가게) */
+.jj .shape-row .nv-right.dense { padding-bottom: 12px; }
+.jj .shape-row .nv-right.dense .nv-rhead { min-height: 44px; padding-top: 4px; }
+.jj .shape-row .nv-right.dense .ui-check { --h-row: 72px; padding-top: 4px; padding-bottom: 4px; }
+.jj .shape-row .nv-right.dense:has(.nv-ask) .ui-check { --h-row: 64px; padding-top: 2px; padding-bottom: 2px; }
+.jj .shape-row .nv-right.dense:has(.nv-ask) .nv-rhead { min-height: 40px; padding-top: 2px; }
+.jj .shape-row .nv-right.dense:has(.nv-ask) .nv-note { display: none; }
+.jj .shape-row .nv-right.dense .nv-ask { padding-bottom: 12px; }
 
-/* 신고 전화 (짐 이탈 의심): 값 칸이 아니라 누르는 줄. 칸 둘 다음 자리를 가로지르는 카드 하나에 줄 둘
-   [전화 아이콘 동그라미][도로 + 번호 / 받는 곳 · 누르면 전화합니다][›]. 줄 사이는 안쪽 선 */
-.jj .nv-calls { grid-column: 1 / -1; display: flex; flex-direction: column; padding: 4px 0; background: var(--canvas); border-radius: var(--r-lg); }
-.jj .nv-call {
-  min-height: 104px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 12px var(--row-pad);
-  color: var(--ink);
-  text-decoration: none;
-  border-radius: var(--r-md);
-  transition: background-color var(--dur-1) var(--ease-std);
-  -webkit-tap-highlight-color: transparent;
-}
-.jj .nv-call:active { background: var(--surface-soft); }
-.jj .nv-call:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-.jj .nv-call + .nv-call { background-image: linear-gradient(var(--hairline), var(--hairline)); background-repeat: no-repeat; background-size: calc(100% - 2 * var(--row-pad)) 1px; background-position: var(--row-pad) 0; }
-.jj .nv-call .ic { flex: none; width: 64px; height: 64px; display: grid; place-items: center; color: var(--ink); background: var(--surface-strong); border-radius: var(--r-full); }
-.jj .nv-call .ic svg { width: 30px; height: 30px; }
-.jj .nv-call .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.jj .nv-call .tx b { font-size: var(--fs-row); font-weight: 700; line-height: 1.25; color: var(--ink); }
-.jj .nv-call .tx > span { font-size: var(--fs-caption); font-weight: 400; line-height: 1.3; color: var(--muted); }
-.jj .nv-call .chev { flex: none; width: 32px; height: 32px; color: var(--muted-soft); }
-/* 칸 2 x 2 의 아랫줄 자리 (높이 = 칸 하나) 에 전화 둘을 나란히. 번호는 도로 이름 아래 줄로 */
-.jj .nv-calls { display: grid; grid-template-columns: 1fr 1fr; padding: 0 4px; }
-.jj .shape-tall .nv-calls { height: var(--h-tile); }
-.jj .nv-calls .nv-call { --row-pad: 12px; min-height: 0; gap: 10px; }
-.jj .nv-calls .nv-call .ic { width: 44px; height: 44px; }
-.jj .nv-calls .nv-call .ic svg { width: 24px; height: 24px; }
-.jj .nv-calls .nv-call .tx b .tnum { display: block; white-space: nowrap; }
-.jj .nv-calls .nv-call .tx .hint, .jj .nv-calls .nv-call .chev { display: none; }
-.jj .nv-calls .nv-call + .nv-call { background-size: 1px calc(100% - 40px); background-position: 0 20px; }
-
-/* 자세히 카드: 무대 왼쪽 위, 이름표 아래에 떠 있다 (떠 있는 높이 하나, 우물 면) */
+/* 자세히 카드 (낮은 창 · 세로 창): 무대 왼쪽 위에 떠 있다 (떠 있는 높이 하나, 우물 면 + 1 px 둘레) */
 .jj .nv-detail {
   --c: var(--none);
   --ct: var(--none-t);
   position: absolute;
-  left: 24px;
-  top: 76px;
+  left: 16px;
+  top: 16px;
   z-index: 10;
-  width: 600px;
-  max-width: calc(100% - 48px);
-  max-height: calc(100% - 100px);
+  width: 620px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px 26px;
+  gap: 10px;
+  padding: 20px 22px;
   text-align: left;
   color: var(--ink);
   background: var(--surface-soft);
-  border-radius: var(--r-lg);
-  box-shadow: var(--e-1);
+  border-radius: var(--r-panel);
+  box-shadow: inset 0 0 0 1px var(--chip-line), var(--e-1);
+  scrollbar-width: none;
 }
 .jj .nv-detail.tone-green { --c: var(--ok); --ct: var(--ok-t); }
 .jj .nv-detail.tone-orange { --c: var(--alert); --ct: var(--alert-t); }
 .jj .nv-detail.tone-red { --c: var(--bad); --ct: var(--bad-t); }
 .jj .nv-detail .hd { display: flex; align-items: center; gap: 12px; font-size: var(--fs-label); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .jj .nv-detail .hd .ui-chip { margin-left: auto; background: var(--surface-strong); }
-.jj .nv-detail strong { font-size: var(--fs-row); font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.jj .nv-detail strong { font-size: var(--fs-heading); font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .jj .nv-detail .cells { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.jj .nv-detail .cell { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; background: var(--surface-strong); border-radius: var(--r-sm); }
-.jj .nv-detail .cell span { font-size: var(--fs-label); font-weight: 400; color: var(--body); }
-.jj .nv-detail .cell b { font-size: var(--fs-row); font-weight: 700; font-variant-numeric: tabular-nums; }
+.jj .nv-detail .cell { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: var(--surface-strong); border-radius: 12px; }
+.jj .nv-detail .cell span { font-size: var(--fs-label); font-weight: 400; color: var(--muted); white-space: nowrap; }
+.jj .nv-detail .cell b { font-size: var(--fs-heading); font-weight: 600; font-variant-numeric: tabular-nums; }
 .jj .nv-detail p { margin: 0; font-size: var(--fs-caption); font-weight: 400; line-height: 1.35; color: var(--muted); }
-/* 자세히 카드가 떠 있으면 무대 위 꼬리표는 감춘다 (카드 가장자리에 반쯤 가린 글이 보이지 않게) */
-.jj .nv-stage:has(> .nv-detail) .bv-layer { visibility: hidden; }
-/* row (1920 x 720): 무대가 낮아 값 넷을 한 줄로 (아래 설명 줄까지 잘리지 않게) */
-.jj .shape-row .nv-detail { left: 16px; right: 16px; width: auto; top: 60px; max-height: calc(100% - 76px); }
-.jj .shape-row .nv-detail .cells { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.jj .shape-row .nv-detail .cell { padding: 10px 14px; }
-.jj .shape-row .nv-detail .cell span { white-space: nowrap; }
+/* 자세히 카드가 떠 있으면 무대 위 칩은 감춘다 (카드 가장자리에 반쯤 가린 글이 보이지 않게). row 는 얇은 띠라 칩이 그 아래에 그대로 */
+.jj .nv-park:not(.shape-row) .nv-stage:has(> .nv-detail) .bv-layer { visibility: hidden; }
+/* row (1920 x 720 ~): 무대가 낮아 카드가 짐을 가렸다 → 무대 위 변에 붙는 한 줄 띠 [문장 26 / 600][값 넷] (머리 · 설명 줄 없이, 높이 108 쯤).
+   3D 는 이 띠 아래로 적재함을 다시 맞춘다 (무대 높이의 22 % 밑 · 위쪽에 붙은 넓은 띠, bed-scene visibleRect) */
+.jj .shape-row .nv-detail { left: 16px; right: 16px; top: 16px; width: auto; max-width: none; flex-direction: row; align-items: center; gap: 28px; padding: 12px 12px 12px 24px; overflow: hidden; }
+.jj .shape-row .nv-detail .hd, .jj .shape-row .nv-detail p { display: none; }
+.jj .shape-row .nv-detail strong { flex: none; white-space: nowrap; }
+.jj .shape-row .nv-detail .cells { flex: 1; min-width: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.jj .shape-row .nv-detail .cell { padding: 9px 16px; }
 
 /* ── 위 띠 (판정 머리 없는 화면): 주행 · 기록. 칩 없이 글만, 바탕 위 ── */
 /* 옆 여백은 정차 틀과 같은 --edge (적재적소 글자 = 정차 경고등 = 32). 돌아가기가 있으면 화살 그림의 왼끝이 32 에 오게 단추를 내민다 */
@@ -353,15 +444,15 @@
 .jj .nv-top .tail { margin-left: auto; min-width: 0; display: flex; align-items: center; gap: 24px; padding: 0 0 0 16px; }
 .jj .nv-top .cap { font-size: var(--fs-caption); font-weight: 400; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-/* ── 주행: 가운데 한 덩어리 (경고등 위 + 한 줄 아래). 낮에도 바탕 --bg. 숫자 · 단추 · 3D · 둘째 줄 · 움직임 없음 ── */
+/* ── 주행: 가운데 한 덩어리 (경고 표지 위 + 한 줄 아래). 바탕 --bg. 숫자 · 단추 · 3D · 둘째 줄 · 움직임 · 강조 색 없음 (상태 색 하나뿐) ── */
 .jj .nv-drive { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
-/* 위 띠 높이 = 정차 판정 머리 높이 (정차 · 다시 묶기 · 주행이 같은 머리 높이, 바뀔 때 위 글이 뛰지 않게). 세로 창은 낮은 띠 그대로 */
-.jj.nav:not([data-layout='tall']) .nv-drive > .nv-top { height: calc(var(--h-banner) + var(--edge)); padding-top: var(--edge); }
-.jj .nv-drive-block { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 48px; padding: 0 48px var(--h-top); }
-.jj.nav:not([data-layout='tall']) .nv-drive-block { padding-bottom: calc(var(--h-banner) + var(--edge)); }
-/* 경고 표지 104 (낮 · 밤 같이): 면 없이 가는 선 (3.4 px). 색은 이 표지와 위 빛 줄에만 */
-.jj .nv-drive-lamp { --sign: 104px; --sign-shape: 100%; }
-.jj .nv-drive-lamp .ui-shape { --sw: 4; }
+/* 위 띠: 정차 화면의 도구 줄과 같은 줄 (위 24 + 76) */
+.jj.nav:not([data-layout='tall']) .nv-drive > .nv-top { height: calc(var(--h-cell) + var(--edge-y)); padding-top: var(--edge-y); }
+.jj .nv-drive-block { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; padding: 0 48px var(--h-top); }
+.jj.nav:not([data-layout='tall']) .nv-drive-block { padding-bottom: calc(var(--h-cell) + var(--edge-y)); }
+/* 경고 표지 88 (낮 · 밤 같이): 면 없이 가는 선. 색은 이 표지와 위 빛 줄에만 */
+.jj .nv-drive-lamp { --sign: 88px; --sign-shape: 100%; }
+.jj .nv-drive-lamp .ui-shape { --sw: 4.2; }
 /* 한 줄은 줄어들지 않는다 (flex: none): 블록이 낮아도 글자 아래가 잘리거나 듣는 중 알약 밑으로 숨지 않게 */
 .jj .nv-line {
   flex: none;
@@ -377,13 +468,14 @@
   overflow: visible;
 }
 /* 듣는 중 자리는 늘 비워 둔다 (알약이 떠도 글이 움직이지 않게) */
-.jj .nv-listen { flex: none; height: var(--h-pill); margin-top: -16px; }
-/* 낮은 창 (설계 높이 760 밑, 1920 x 720): 경고등 120 · 사이 24 · 아래 여백은 가장자리만 (한 줄과 알약이 다 들어가게) */
-.jj.nav[data-short] .nv-drive-block { gap: 24px; padding-bottom: var(--edge); }
-.jj.nav[data-short] .nv-drive-lamp { --sign: 88px; }
-/* 표지가 작아져 남은 높이로 한 줄과 듣는 중 알약 사이를 띄운다 */
+.jj .nv-listen { flex: none; height: var(--h-pill); margin-top: -12px; }
+.jj .nv-drive .ui-listen svg { width: 32px; height: 32px; }
+.jj .nv-drive .ui-level { height: 28px; }
+/* 낮은 창 (설계 높이 760 밑, 1920 x 720): 표지 76 · 사이 24 · 아래 여백은 가장자리만 (한 줄과 알약이 다 들어가게) */
+.jj.nav[data-short] .nv-drive-block { gap: 24px; padding-bottom: var(--edge-y); }
+.jj.nav[data-short] .nv-drive-lamp { --sign: 76px; }
 .jj.nav[data-short] .nv-listen { margin-top: 0; }
-.jj.nav[data-short] .nv-drive-lamp .ui-shape { --sw: 4.4; }
+.jj.nav[data-short] .nv-drive-lamp .ui-shape { --sw: 4.6; }
 
 /* ── 기록 요약: 위 띠 / [고르는 줄 (셋 이하) | 운송장 목록 단] [머리 · 칸 넷 · 시간 줄] ── */
 .jj .nv-records { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
@@ -406,10 +498,11 @@
 .jj .nv-rec-pick > button:active { background: var(--surface-press); }
 .jj .nv-rec-pick > button b { font-size: var(--fs-label); font-weight: 600; white-space: nowrap; }
 .jj .nv-rec-pick > button span { font-size: var(--fs-caption); font-weight: 400; color: var(--muted); white-space: nowrap; }
-.jj .nv-rec-pick > button[aria-pressed='true'] { color: var(--on-select); background: var(--select); }
-.jj .nv-rec-pick > button[aria-pressed='true'] span { color: var(--on-select-muted); }
+.jj .nv-rec-pick > button[aria-pressed='true'] { color: var(--ink); background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
+.jj .nv-rec-pick > button[aria-pressed='true'] span { color: var(--body); }
 .jj .nv-rec-list { --row-pad: 20px; flex: none; width: var(--rec-list); overflow-y: auto; padding: 8px; background: var(--canvas); border-radius: var(--r-lg); scrollbar-width: none; }
-.jj .nv-rec-list .ui-lrow { border-radius: var(--r-md); }
+.jj .nv-rec-list .ui-lrow { border-radius: var(--r-btn); }
+.jj .nv-rec-list .ui-lrow.sel { color: var(--ink); background-color: var(--accent-soft); }
 .jj .nv-rec-list .nv-empty { padding: 20px; }
 .jj .nv-rec-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
 .jj .nv-rec-head { flex: none; min-height: 64px; display: flex; align-items: baseline; gap: 24px; padding: 4px 0 0; }
@@ -420,7 +513,7 @@
 /* 음성 안내 펼치기: 버금 면 단추 (높이 80 = 61 CSS) */
 .jj .nv-rec-voice { flex: none; height: 80px; margin-left: auto; align-self: center; padding: 0 28px; border: 0; border-radius: var(--r-md); font-size: var(--fs-label); font-weight: 600; color: var(--ink); background: var(--surface-strong); white-space: nowrap; transition: background-color var(--dur-1) var(--ease-std); }
 .jj .nv-rec-voice:active { background: var(--surface-press); }
-.jj .nv-rec-voice[aria-pressed='true'] { background: var(--select); color: var(--on-select); }
+.jj .nv-rec-voice[aria-pressed='true'] { background: var(--accent-soft); color: var(--ink); }
 .jj .nv-rec-pick + .nv-rec-voice { margin-left: 0; }
 .jj .nv-rec-head > span { min-width: 0; font-size: var(--fs-caption); font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .jj .nv-rec-tiles { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
@@ -448,7 +541,7 @@
 .jj .nv-trow .tx b { font-size: var(--fs-heading); font-weight: 600; line-height: 1.25; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .jj .nv-trow .tx span { font-size: var(--fs-caption); font-weight: 400; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 /* 고른 줄 = --select 면 + 잉크 글 (테두리 · 고른 막대 없음). 잇는 선은 고른 면 안에서 쉰다 */
-.jj .nv-trow.sel { position: relative; overflow: hidden; color: var(--ink); background: var(--select); border-radius: var(--r-md); }
+.jj .nv-trow.sel { position: relative; overflow: hidden; color: var(--ink); background: var(--accent-soft); border-radius: var(--r-btn); }
 .jj .nv-trow.sel :is(time, .tx span) { color: var(--body); }
 .jj .nv-trow.sel .tx b { color: var(--ink); }
 .jj .nv-trow.sel .rl::before { opacity: 0; }
@@ -462,7 +555,7 @@
 .jj .nv-rec-main.split .nv-rec-time { padding: 8px 8px 64px; }
 .jj .nv-rec-main.split .nv-trow { --row-pad: 20px; }
 /* side (1224 x 880 · 1920 x 1080): [시간 줄 | 칸 2 x 2 / 자세히] */
-.jj .nv-rec-main.rs-side { grid-template-columns: minmax(0, 1fr) var(--w-side); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'head head' 'time tiles' 'time detail'; }
+.jj .nv-rec-main.rs-side { grid-template-columns: minmax(0, 1fr) var(--w-aside); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'head head' 'time tiles' 'time detail'; }
 .jj .nv-rec-main.rs-side .nv-rec-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .jj .nv-rec-main.rs-side .nv-rec-tiles .ui-tile { min-height: 156px; }
 /* row (1920 x 720): [칸 4] / [시간 줄 | 자세히] */
@@ -511,6 +604,11 @@
 @container recd (max-height: 511px) {
   .jj .nv-rec-detail .steps { display: none; }
 }
+/* v5: 기록 화면의 카드도 같은 판 (모서리 16 + 1 px 둘레) */
+.jj :is(.nv-rec-list, .nv-rec-timewrap, .nv-rec-detail) { border-radius: var(--r-panel); box-shadow: inset 0 0 0 1px var(--panel-line); }
+/* 요약 칸 = 정차 화면의 지표 칸 (.nv-kpi, 높이 76): 넓은 줄은 넷 한 줄, 오른 단(side)은 한 단 넷 (값 줄에 '마지막 10:23' 이 들어가게) */
+.jj .nv-rec-tiles { grid-auto-rows: var(--h-kpi); gap: 12px; }
+.jj .nv-rec-main.rs-side .nv-rec-tiles { grid-template-columns: minmax(0, 1fr); }
 .jj .nv-rec-none { display: grid; place-items: center; flex: 1; font-size: var(--fs-body); font-weight: 400; color: var(--muted); }
 /* 위 띠에 같은 말이 있으므로 세로 창(위 띠 보조 글을 빼는 곳)에서만 시간 줄 끝에 */
 .jj .nv-rec-time > li.nv-rec-note { display: none; }
@@ -540,9 +638,9 @@
 .jj .nv-sheet.load .nv-sheet-foot > .ui-btn { margin-top: auto; }
 .jj .nv-sheet-head { flex: none; height: 112px; display: flex; align-items: center; padding: 0 16px 0 0; }
 .jj .nv-sheet-head h2 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; padding: 0 32px; font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
-.jj .nv-sheet-head .x { flex: none; width: 80px; height: 80px; display: grid; place-items: center; border: 0; border-radius: var(--r-full); color: var(--ink); background: var(--surface-strong); transition: background-color var(--dur-1) var(--ease-std); }
+.jj .nv-sheet-head .x { flex: none; width: 76px; height: 76px; display: grid; place-items: center; border: 0; border-radius: var(--r-full); color: var(--ink); background: var(--surface-strong); transition: background-color var(--dur-1) var(--ease-std); }
 .jj .nv-sheet-head .x:active { background: var(--surface-press); }
-.jj .nv-sheet-head .x svg { width: 32px; height: 32px; }
+.jj .nv-sheet-head .x svg { width: 28px; height: 28px; }
 .jj .nv-sheet-body { flex: 0 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 32px; padding: 0 32px 32px; scrollbar-width: none; }
 /* 묶음: 면 없이 작은 이름(label 24/600 muted) + 내용. 묶음 사이는 간격 32 */
 .jj .nv-field, .jj .nv-sheet-body > .grp { flex: none; min-width: 0; display: flex; flex-direction: column; }
@@ -558,35 +656,39 @@
 }
 .jj .nv-sheet-foot { flex: none; display: flex; flex-direction: column; gap: 20px; padding: 0 32px 32px; }
 .jj .nv-sheet-foot .ui-btn { width: 100%; }
-/* 짐 종류: 고르는 칸 다섯. 고른 것 = 진한 면 */
+/* 짐 종류: 고르는 칸 다섯. 고른 것 = 강조 면 + 강조 색 아이콘 + 잉크 글 + 아래 2 px 표시 줄 */
 .jj .nv-kinds { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-.jj .nv-kinds button { height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 0; border-radius: var(--r-md); color: var(--muted); background: var(--surface-strong); font-size: var(--fs-label); font-weight: 600; line-height: 1; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
+.jj .nv-kinds button { position: relative; height: 116px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: var(--r-btn); color: var(--muted); background: var(--surface-strong); font-size: var(--fs-label); font-weight: 600; line-height: 1; transition: background-color var(--dur-1) var(--ease-std), color var(--dur-1) var(--ease-std), transform var(--dur-1) var(--ease-std); }
+.jj .nv-kinds button svg { width: 38px; height: 38px; }
 .jj .nv-kinds button:active { background: var(--surface-press); }
-.jj .nv-kinds button[aria-pressed='true'] { color: var(--on-select); font-weight: 700; background: var(--select); }
+.jj .nv-kinds button[aria-pressed='true'] { color: var(--ink); background: var(--accent-soft); }
+.jj .nv-kinds button[aria-pressed='true'] svg { color: var(--accent); }
+.jj .nv-kinds button[aria-pressed='true']::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 2px; background: var(--accent); border-radius: 1px; }
 .jj .nv-belts { display: flex; align-items: stretch; gap: 12px; height: var(--h-btn); }
 .jj .nv-belts .ui-stepper { flex: none; width: 252px; }
-.jj .nv-belts .ui-stepper > button { width: 80px; }
+.jj .nv-belts .ui-stepper > button { width: 76px; min-width: 76px; }
 .jj .nv-belts .ui-seg { flex: 1; min-width: 0; height: auto; }
 /* 시트 위 증감: 나눔 길과 같은 버금 면 우물 + 한 단계 진한 단추 (면 차이로만) */
 .jj .nv-sheet .ui-stepper { background: var(--surface-strong); }
 .jj .nv-sheet .ui-stepper > button { background: var(--surface-press); }
 .jj .nv-sheet .ui-stepper > button:active { background: var(--select); }
+.jj .nv-sheet .ui-stepper .val b { font-size: 30px; }
 .jj .nv-sheet .ui-stepper > button:disabled { background: transparent; }
 /* 판정 미리 보기: 면 없이 [경고등 72][판정 말 + 할 일] — 주 단추 바로 위 */
-.jj .nv-preview { display: flex; align-items: center; gap: 24px; min-height: 88px; }
-.jj .nv-preview .ui-sign { --sign: 56px; }
+.jj .nv-preview { display: flex; align-items: center; gap: 20px; min-height: 80px; }
+.jj .nv-preview .ui-sign { --sign: 44px; }
 .jj .nv-preview .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-.jj .nv-preview .tx b { font-size: var(--fs-title); font-weight: 700; line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--ink); }
+.jj .nv-preview .tx b { font-size: var(--fs-heading); font-weight: 700; line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--ink); }
 .jj .nv-preview .tx span { font-size: var(--fs-caption); font-weight: 400; line-height: 1.3; color: var(--body); }
-.jj .nv-srow { display: flex; align-items: center; gap: 24px; min-height: 104px; padding: 14px var(--row-pad); }
+.jj .nv-srow { display: flex; align-items: center; gap: 24px; min-height: var(--h-row); padding: 14px var(--row-pad); }
 /* 이름 칸은 줄바꿈하지 않을 만큼 폭을 지킨다 (증감 · 입력은 오른쪽 고정 폭) */
 .jj .nv-srow .tx { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 4px; }
 .jj .nv-srow .tx b { font-size: var(--fs-row); font-weight: 600; line-height: 1.3; white-space: nowrap; }
 .jj .nv-srow .tx span { font-size: var(--fs-caption); font-weight: 400; line-height: 1.3; color: var(--muted); }
 .jj .nv-srow .tx .mu > span { white-space: nowrap; }
-.jj .nv-srow .ui-stepper { flex: none; width: 300px; height: 88px; padding: 4px; }
-.jj .nv-srow .ui-stepper > button { width: 80px; }
-.jj .nv-srow .ui-stepper .val b { font-size: 32px; letter-spacing: 0; }
+.jj .nv-srow .ui-stepper { flex: none; width: 300px; height: 84px; padding: 4px; }
+.jj .nv-srow .ui-stepper > button { width: 76px; min-width: 76px; }
+.jj .nv-srow .ui-stepper .val b { font-size: 28px; letter-spacing: 0; }
 .jj .nv-srow input {
   flex: none;
   width: 300px;
@@ -600,27 +702,37 @@
   border-radius: var(--r-sm);
   outline: none;
 }
-.jj .nv-srow input:focus { box-shadow: inset 0 0 0 2px var(--ink); }
+.jj .nv-srow input:focus { box-shadow: inset 0 0 0 2px var(--focus); }
 .jj .nv-sheet .nv-note { padding: 0; }
 /* 지우기: 상태 색 면을 깔지 않는다. 버금 면 + 빨강 글 하나 */
 .jj .nv-danger { color: var(--bad-t) !important; background: var(--surface-strong) !important; }
-.jj .nv-sheet-body > .grp > .ui-btn { width: 100%; height: 80px; }
+.jj .nv-sheet-body > .grp > .ui-btn { width: 100%; height: var(--h-btn); }
 .jj .nv-sheet-body > .grp > .nv-srow + .ui-btn { margin-top: 8px; }
 
 
 /* ══ mid: Pleos Connect 앱 하나 (1224 x 880 CSS px -> 설계 1600 x 1150, 0.765배). 기본 배치 (side) ══ */
+/* 왼 덩어리 1048: 지표 칸이 좁다 (336 + 225 x 3): 아이콘 40 · 안쪽 12. 아래 줄 = [계산 근거 590][짐 종류 442] */
+.jj[data-layout='mid'] .nv-tiles { grid-template-columns: minmax(0, 336fr) repeat(3, minmax(0, 225fr)); }
+.jj[data-layout='mid'] .nv-kpi { gap: 10px; padding: 0 12px; }
+.jj[data-layout='mid'] .nv-kpi .ic { width: 40px; height: 40px; }
+.jj[data-layout='mid'] .nv-kpi .vl .bar { margin-left: 8px; }
+.jj[data-layout='mid'] .nv-strip { grid-template-columns: minmax(0, 590fr) minmax(0, 442fr); }
+.jj[data-layout='mid'] .nv-strip .nv-card { padding: 16px; }
+.jj[data-layout='mid'] .nv-kindbar.card { padding: 16px 12px 12px; }
+.jj[data-layout='mid'] .nv-kindbar.card .nv-phead { padding: 0 4px; }
+.jj[data-layout='mid'] .nv-kindbar.card .list { gap: 0; }
 .jj[data-layout='mid'] .nv-rec-list { --row-pad: 16px; }
 .jj[data-layout='mid'] .nv-rec-list .ui-lrow { gap: 16px; }
 
 /* ══ row: 1920 x 720 처럼 낮은 넓은 창. 막대 칸 · 줄 · 시트를 조금 줄여 상차 시트가 스크롤 없이 들어가게 ══ */
-.jj .shape-row { --h-cell: 88px; }
-.jj.nav[data-layout='wide']:not([data-size='lg']) { --h-row: 88px; --h-seg: 80px; }
+.jj.nav[data-layout='wide']:not([data-size='lg']) { --h-row: 84px; }
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet-head { height: 84px; }
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet-head h2 { padding-left: 28px; }
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet-body { gap: 20px; padding: 0 28px 24px; }
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet-foot { padding: 0 28px 24px; }
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-field-h { margin-bottom: 8px; }
-.jj.nav[data-layout='wide']:not([data-size='lg']) .nv-kinds button { height: 88px; gap: 8px; }
+.jj.nav[data-layout='wide']:not([data-size='lg']) .nv-kinds button { height: 88px; gap: 6px; }
+.jj.nav[data-layout='wide']:not([data-size='lg']) .nv-kinds button svg { width: 32px; height: 32px; }
 /* 상차 시트는 두 단: 왼쪽 짐 종류 · 무게 · 벨트, 오른쪽 위 앞벽 · 아래 판정 미리 보기 + 바로 밑 주 단추 */
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet.load {
   width: 1120px;
@@ -642,47 +754,36 @@
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet.load .nv-sheet-foot { grid-area: foot; align-self: end; padding: 0; }
 .jj.nav[data-layout='wide']:not([data-size='lg']) .nv-sheet.load .nv-field.wall .ui-trow { min-height: 0; padding-top: 4px; padding-bottom: 4px; }
 
-/* ══ tall: 세로 창 (611 x 880 CSS px -> 설계 800 x 1152, 0.764배). 스크롤 없는 첫 화면:
-   판정 머리 [경고등 56 · 판정 말] / 할 일 한 줄 / 주 단추 폭 가득 64 -> 보기 막대 64 -> 무대 -> 칸 2 x 2 (274 x 104) -> 버금 단추 둘 64.
-   눈으로 확인 카드는 그 아래 (내려 보면) ══ */
-.jj[data-layout='tall'] .nv-banner {
-  height: auto;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas: 'lamp verdict' 'todo todo' 'act act';
-  align-items: center;
-  column-gap: 20px;
-  row-gap: 16px;
-}
-.jj[data-layout='tall'] .nv-lamp { grid-area: lamp; }
-.jj[data-layout='tall'] .nv-verdict { grid-area: verdict; margin: 0; overflow: hidden; text-overflow: ellipsis; }
-.jj[data-layout='tall'] .nv-todo { grid-area: todo; margin: 0; padding: 0; }
-.jj[data-layout='tall'] .nv-todo strong { white-space: normal; }
+/* ══ tall: 세로 창 (611 x 880 CSS px -> 설계 800 x 1152, 0.764배). 스크롤 없는 첫 화면 (§11.4-d):
+   판정 (판 없이 바탕 위) [표지 40 · 판정 말 44] / 할 일 한 줄 / 주 단추 폭 가득 80 -> 도구 줄 76 (칸 다섯) -> 무대 -> 지표 2 x 2 (높이 76) -> 버금 단추 76.
+   할 일 판은 그 아래 (내려 보면) ══ */
+.jj .nv-park.shape-tall { flex-direction: column; padding: var(--edge-y) var(--edge); }
+.jj[data-layout='tall'] .nv-banner { flex: none; min-height: 0; padding: 0; background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+.jj[data-layout='tall'] .nv-banner .nv-phead { display: none; }
+.jj[data-layout='tall'] .nv-vrow { margin-top: 0; }
+.jj[data-layout='tall'] .nv-todo { margin-top: 8px; }
+.jj[data-layout='tall'] .nv-todo strong { -webkit-line-clamp: 1; }
 .jj[data-layout='tall'] .nv-todo span { display: none; }
-.jj[data-layout='tall'] .nv-action { grid-area: act; width: auto; margin-left: 0; padding-left: 0; }
+.jj[data-layout='tall'] .nv-action { margin-top: 0; padding-top: 16px; }
 .jj .shape-tall .nv-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--gap); scrollbar-width: none; }
 .jj .shape-tall .nv-first { flex: none; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: var(--gap); }
-.jj .shape-tall .nv-first.peek { height: calc(100% - var(--gap) - 84px); }
+.jj .shape-tall .nv-first.peek { height: calc(100% - var(--gap) - 64px); }
 .jj .shape-tall .nv-scroll > .nv-right { flex: none; overflow: visible; margin-bottom: 8px; }
-/* 세로 창은 무대가 넓고 낮아 적재함이 작다: 장면 판을 무대보다 25 % 크게 (가운데 맞춤) 그려 카메라를 당긴 것과 같게 */
+/* 세로 창은 무대가 넓고 낮아 적재함이 작다: 장면 판을 무대보다 크게 (가운데 맞춤) 그려 카메라를 당긴 것과 같게 */
 .jj .shape-tall .nv-stage .bv { inset: -8%; }
-.jj .shape-tall .nv-stage .bv-name { left: calc(6.9% + 8px); top: calc(6.9% + 4px); }
-.jj .shape-tall .nv-rail { width: auto; flex-direction: row; gap: 8px; }
-.jj .shape-tall .nv-rail .ui-seg { flex: 3 1 0; min-width: 0; height: var(--h-cell); grid-auto-rows: auto; }
-.jj .shape-tall .nv-rail .ui-seg > button { flex-direction: row; gap: 10px; }
-.jj .shape-tall .nv-rail .grp { flex: 2 1 0; min-width: 0; margin: 0; padding: 0; flex-direction: row; }
-.jj .shape-tall .nv-rail .grp .ui-cell { flex: 1 1 0; min-width: 0; flex-direction: row; gap: 10px; }
+.jj .shape-tall .nv-rail { gap: 4px; }
+.jj .shape-tall .nv-rail .ui-seg { flex: 3 1 0; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.jj .shape-tall .nv-rail .grp { flex: 2 1 0; min-width: 0; }
+.jj .shape-tall .nv-rail .grp .ui-cell { flex: 1 1 0; width: auto; min-width: 0; }
 .jj .shape-tall .nv-stage-wrap { flex: 1 1 0; min-height: 0; }
-.jj .shape-tall .nv-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+.jj .shape-tall .nv-tiles { height: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: var(--h-kpi); gap: 12px; }
 .jj .shape-tall .nv-foot { gap: var(--gap); }
-.jj[data-layout='tall'] .nv-dock { bottom: 24px; padding: 0 24px; }
-.jj[data-layout='tall'] .nv-detail { width: auto; left: 16px; right: 16px; top: 16px; max-height: calc(100% - 32px); }
-/* 세로 창 무대는 낮다: 판정 머리 · 칸과 같은 머리 줄과 바닥 설명 글은 빼고 문장 + 값 넷만 (잘린 줄이 보이지 않게) */
-.jj[data-layout='tall'] .nv-detail { gap: 10px; padding: 18px 20px; }
-/* 자세히 카드가 무대를 거의 덮으므로 그 뒤 이름표 · 꼬리표는 감춘다 (글이 겹쳐 보이지 않게) */
-.jj[data-layout='tall'] .nv-stage:has(> .nv-detail) :is(.bv-name, .bv-layer) { visibility: hidden; }
+.jj[data-layout='tall'] .nv-dock { bottom: 16px; padding: 0 16px; }
+.jj[data-layout='tall'] .nv-detail { width: auto; left: 12px; right: 12px; top: 12px; max-height: calc(100% - 24px); }
+/* 세로 창 무대는 낮다: 머리 줄과 바닥 설명 글은 빼고 문장 + 값 넷만 (잘린 줄이 보이지 않게) */
+.jj[data-layout='tall'] .nv-detail { gap: 8px; padding: 16px 18px; }
 .jj[data-layout='tall'] .nv-detail .hd, .jj[data-layout='tall'] .nv-detail p { display: none; }
-.jj[data-layout='tall'] .nv-detail .cell { gap: 2px; padding: 8px 14px; }
+.jj[data-layout='tall'] .nv-detail .cell { gap: 0; padding: 6px 12px; }
 /* 위 띠: 돌아가기가 있으면 보조 글을 뺀다 */
 .jj[data-layout='tall'] .nv-top .tail .cap:not(.kit) { display: none; }
 .jj[data-layout='tall'] .nv-top .tail { gap: 16px; }

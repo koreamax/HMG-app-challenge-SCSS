@@ -4,7 +4,7 @@
  * 기록은 기사 본인 것이다. 밖으로는 기사가 이 건만 직접 내보낼 때만 나간다.
  */
 import { useMemo, useState } from 'react'
-import { Gauge, Route, Share2, Siren, Wrench } from 'lucide-react'
+import { ClipboardList, Gauge, Route, Share2, Siren, Wrench } from 'lucide-react'
 import type { Waybill } from '@/engine/records'
 import { CARGO } from '@/engine/cargo'
 import { app } from '@/runtime/runtime'
@@ -20,6 +20,7 @@ export function RecordsScreen() {
   const history = useStore(app, (s) => s.history)
   useStore(phone, (s) => s.details)
   const unread = useUnread()
+  const incAll = useIncidents()
   const [filter, setFilter] = useState<'all' | 'events'>('all')
   const list = useMemo(() => {
     const all: Waybill[] = [...(wb ? [wb] : []), ...[...history].reverse().filter((h) => h.id !== wb?.id)]
@@ -32,6 +33,7 @@ export function RecordsScreen() {
       <AppBar title="기록" />
       <div className="ph-filter">
         <Segmented
+          small
           label="기록 거르기"
           items={[
             { id: 'all', label: '전체' },
@@ -42,6 +44,12 @@ export function RecordsScreen() {
         />
       </div>
       <PullScroll>
+        {/* 지표 줄 (§11.7): 이 기기의 운송장 · 사건 · 조치 수 */}
+        <div className="ph-kpis c3 flat" style={{ marginTop: 0, marginBottom: unread.length ? 10 : 0 }}>
+          <Tile tone="neutral" icon={<ClipboardList size={16} strokeWidth={2} />} name="운송장" value={list.length} unit="건" />
+          <Tile tone="neutral" icon={<Siren size={16} strokeWidth={2} />} name="사건" value={incAll.length} unit="건" />
+          <Tile tone="neutral" icon={<Wrench size={16} strokeWidth={2} />} name="조치" value={incAll.filter((i) => i.resolvedAt).length} unit="건" />
+        </div>
         {unread.length > 0 && (
           <>
             <div className="ph-cards">
@@ -150,7 +158,7 @@ export function WaybillScreen({ id }: { id: string }) {
         }
       />
       <div className="ph-scroll">
-        <div className="ph-tiles c2">
+        <div className="ph-kpis c2">
           <Tile tone={load ? load.tone : 'grey'} icon={<Gauge size={18} strokeWidth={2} />} name="상차 판정" word value={load ? load.title : '판정 불가'} unit={load ? load.limit.toFixed(2) + ' g' : undefined} bar={load ? { ratio: load.limit / 1.2, mark: load.crit / 1.2 } : null} />
           <Tile
             tone={sum.incidents.length ? 'red' : 'neutral'}

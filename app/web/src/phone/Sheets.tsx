@@ -229,7 +229,7 @@ function RuleSheet() {
           <b>3시간 또는 240 km마다</b>
         </div>
       </div>
-      <p className="ph-note" style={{ fontSize: 15, color: 'var(--body)' }}>
+      <p className="ph-note" style={{ fontSize: 'var(--fsp-body)', color: 'var(--body)' }}>
         무인 트럭에는 운전자가 없어 짐 고정은 허브 점검자가 확인합니다. 봉인 화물은 점검하지 않습니다.
       </p>
       <p className="ph-note">앱은 차를 세우지 않습니다. 점검 정차는 관제 시스템에 요청하고, 점검 승인은 운송장에 남습니다.</p>
@@ -258,7 +258,7 @@ function CloseSheet() {
         </>
       }
     >
-      <p className="ph-note" style={{ fontSize: 15, color: 'var(--body)' }}>
+      <p className="ph-note" style={{ fontSize: 'var(--fsp-body)', color: 'var(--body)' }}>
         이 운송장을 닫고 기록으로 넘깁니다. 내비도 같은 운송장을 쓰므로 함께 닫힙니다. 기록과 사진은 이 기기에 남습니다.
       </p>
     </Sheet>
@@ -286,7 +286,7 @@ function ClearSheet() {
         </>
       }
     >
-      <p className="ph-note" style={{ fontSize: 15, color: 'var(--body)' }}>
+      <p className="ph-note" style={{ fontSize: 'var(--fsp-body)', color: 'var(--body)' }}>
         지우면 되돌릴 수 없습니다. 협의에 쓸 기록이 있으면 먼저 그 건만 내보내세요.
       </p>
     </Sheet>

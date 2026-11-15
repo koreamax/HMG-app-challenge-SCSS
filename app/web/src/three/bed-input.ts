@@ -11,6 +11,7 @@ import type { ActiveAlert } from '@/engine/monitor'
 import type { KitView } from '@/runtime/runtime'
 import { SHIFT_MOVED_MM } from '@/engine/constants'
 import type { BedInput, BedPose, BeltMark, MarkTone, StageTag } from './bed-scene'
+import { CARGO } from '@/engine/cargo'
 import { BAR_NAME, dirOf, fmtN, shiftWords } from '@/ui/format'
 
 export type StageMode = 'park' | 'relash' | 'kit'
@@ -182,4 +183,45 @@ export function stageInput(o: { load: LoadInput | null; verdict: LoadVerdict | n
     input: { ...base, belts, shift: null, pose, fallen: !onBed, lost: false, ghost: true, focus: false, tags, arrowTone: shiftTone },
     name: mode === 'kit' ? kitName(kit) : baseName,
   }
+}
+
+/**
+ * 정보 칩 둘 (§11.5-4, 화면이 이미 가진 값만): 짐 (이름 · 키 · 마찰) · 벨트 (종류 · 장력). 내비 · 폰 · 트윈만 찍기가 같이 쓴다.
+ * 벨트 칩은 문제 표시가 없는 벨트에 붙인다 (상태 칩과 한 벨트를 다투지 않게)
+ */
+export function infoChips(input: BedInput, v: LoadVerdict, load: LoadInput): StageTag[] {
+  if (input.empty) return []
+  const spec = CARGO[load.kind]
+  const out: StageTag[] = [
+    {
+      id: 'i-cargo',
+      text: spec.label,
+      title: spec.label,
+      rows: [
+        { k: '키', v: spec.size.h.toFixed(1) + ' m' },
+        { k: '마찰', v: spec.mu.toFixed(2) },
+      ],
+      tone: 'neutral',
+      at: { kind: 'cargo' },
+      side: 'left',
+    },
+  ]
+  const hot = (t: MarkTone) => t === 'orange' || t === 'red'
+  const taken = new Set((input.tags ?? []).map((t) => (t.at.kind === 'belt' ? t.at.index : -1)))
+  const free = input.belts.map((b, i) => ({ b, i })).filter((x) => !x.b.hint && !taken.has(x.i) && !hot(x.b.tone))
+  // 뒤쪽(보는 쪽에 가까운) 벨트부터
+  const pick = free[free.length - 1]
+  if (pick) {
+    const rubber = load.beltType === 'rubber'
+    out.push({
+      id: 'i-belt',
+      text: rubber ? '고무바·로프' : '라쳇 벨트',
+      title: rubber ? '고무바·로프' : '라쳇 벨트',
+      rows: [rubber ? { k: '장력', v: '계산 제외' } : { k: v.measured ? '장력 · 키트' : '장력 · 추정', v: fmtN(v.tensions[0]?.n ?? 0) + ' N' }],
+      tone: 'neutral',
+      at: { kind: 'belt', index: pick.i },
+      side: 'right',
+    })
+  }
+  return out
 }

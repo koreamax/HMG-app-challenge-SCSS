@@ -2,6 +2,7 @@
  * 적재적소. 한 웹 앱이 세 가지로 뜬다 (주소의 ?app= 값):
  *   nav   : 내비게이션 판 (Pleos Connect 차 화면, Android nav 빌드가 연다)
  *   phone : 휴대폰 판 (Android phone 빌드가 연다)
+ *   twin  : 트윈만 찍기 (§11.9, 기획서용 그림). 적재함 3D 하나만 창 가득, 단추 · 판 · 글 없음. 런타임을 시작하지 않는다
  *   stage : 시연 무대 (브라우저 기본값). 내비 + 폰을 나란히 띄우고 오른쪽에 발표자용 시연 패널.
  *           두 판이 같은 판정 엔진 · 운송장을 쓰므로 한쪽에서 바꾼 것이 다른 쪽에 바로 보인다.
  */
@@ -12,12 +13,13 @@ import { StageView } from './app/StageView'
 
 const NavApp = lazy(() => import('./nav/NavApp'))
 const PhoneApp = lazy(() => import('./phone/PhoneApp'))
+const TwinOnly = lazy(() => import('./three/TwinOnly'))
 
 const qs = new URLSearchParams(typeof location !== 'undefined' ? location.search : '')
-export type AppKind = 'nav' | 'phone' | 'stage'
+export type AppKind = 'nav' | 'phone' | 'stage' | 'twin'
 export const APP_KIND: AppKind = (() => {
   const v = qs.get('app')
-  if (v === 'nav' || v === 'phone' || v === 'stage') return v
+  if (v === 'nav' || v === 'phone' || v === 'stage' || v === 'twin') return v
   return app.get().native ? 'nav' : 'stage'
 })()
 
@@ -31,7 +33,14 @@ export const PHONE_H = 844
 const Stage = StageView
 
 export default function App() {
-  useEffect(() => startRuntime(), [])
+  // 트윈만 찍기는 런타임 (판정 고리 · 음성 · 키트) 없이 그림만
+  useEffect(() => (APP_KIND === 'twin' ? undefined : startRuntime()), [])
+  if (APP_KIND === 'twin')
+    return (
+      <Suspense fallback={null}>
+        <TwinOnly />
+      </Suspense>
+    )
   if (APP_KIND === 'nav')
     return (
       <NavFit>

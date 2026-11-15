@@ -5,15 +5,15 @@
  *   시간 줄 한 줄을 누르면 오른쪽 자세히 카드가 그 기록을 보인다 (처음은 마지막 사건). 시간 줄 아래는 바탕으로 녹여 잘린 줄이 없게.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, ChevronRight, Minus } from 'lucide-react'
+import { Check, ChevronRight, Minus, RotateCcw, Route, TriangleAlert } from 'lucide-react'
 import { CARGO } from '@/engine/cargo'
 import type { Tone } from '@/engine/limit'
 import type { RecordEntry, Waybill } from '@/engine/records'
 import { app } from '@/runtime/runtime'
 import { useStore } from '@/runtime/store'
 import { clock, dayLabel, DIR_WORD, fmtG, fmtKm, placeText } from '@/ui/format'
-import { ListRow, NumText, Tile, type TileTone } from '@/ui/parts'
-import { TopBar } from './Frame'
+import { GGaugeIcon, ListRow, NumText, type TileTone } from '@/ui/parts'
+import { Kpi, TopBar } from './Frame'
 import { useFrameSize } from '@/ui/Fit'
 import { useNavLayout, useParkShape } from './hooks'
 import { openRecords } from './state'
@@ -160,7 +160,6 @@ export function Records() {
   const tall = useNavLayout() === 'tall'
   const shape = useParkShape()
   const frame = useFrameSize()
-  const below = shape === 'side'
   const [open, setOpen] = useState(false)
   const w = list.find((x) => x.id === sel) ?? list[0] ?? null
   // 운송장이 셋 이하면 왼쪽 목록 단 대신 위에 고르는 줄 (하나뿐이면 고를 것이 없으니 없음)
@@ -259,10 +258,11 @@ export function Records() {
             </div>
             <div className="nv-rec-tiles jj-stagger">
               {/* 이름은 내비 · 폰 · 운송장이 같이 쓰는 '버티는 제동'. 판정 말은 기준 자리 (점 색과 같이) */}
-              <Tile tone={s.tone} captionBelow={below} name="버티는 제동" caption={s.title.replace(/^계산상 /, '')}value={s.limit !== null ? fmtG(s.limit) : '—'} unit={s.limit !== null ? 'g' : undefined} sub={CARGO[w.input.kind].label + ' ' + w.input.massKg + ' kg · 벨트 ' + w.input.belts + '개'} />
-              <Tile tone={s.alerts ? 'red' : 'neutral'} captionBelow={below} name="사건" caption={s.lastAlert ? '마지막 ' + clock(s.lastAlert.at) : '없음'} value={s.alerts} unit="건" sub={s.lastAlert ? ALERT_WORD[s.lastAlert.alert] : '사건 없이 운행'} />
-              <Tile tone="neutral" captionBelow={below} name="다시 조임" caption={s.lastRelash ? '마지막 ' + clock(s.lastRelash.at) : '없음'} value={s.relash} unit="번" sub="사건 뒤 다시 조인 횟수" />
-              <Tile tone="neutral" captionBelow={below} name="거리" caption="상차 뒤" value={fmtKm(s.km)} unit="km" sub="재점검은 80 km마다" />
+              {/* 정차 화면의 지표 칸과 같은 모양 (둥근 아이콘 · 이름 · 값 … 보조 글). 짐 · 벨트 · 사건 종류는 시간 줄과 자세히 카드가 말한다 */}
+              <Kpi tone={s.tone} icon={<GGaugeIcon />} name="버티는 제동" caption={s.title.replace(/^계산상 /, '')} value={s.limit !== null ? fmtG(s.limit) : '—'} unit={s.limit !== null ? 'g' : undefined} />
+              <Kpi tone={s.alerts ? 'red' : 'neutral'} icon={<TriangleAlert />} name="사건" caption={s.lastAlert ? '마지막 ' + clock(s.lastAlert.at) : '없음'} value={s.alerts} unit="건" />
+              <Kpi icon={<RotateCcw />} name="다시 조임" caption={s.lastRelash ? '마지막 ' + clock(s.lastRelash.at) : '없음'} value={s.relash} unit="번" />
+              <Kpi icon={<Route />} name="거리" caption="상차 뒤" value={fmtKm(s.km)} unit="km" />
             </div>
             <div className="nv-rec-timewrap">
               <ol ref={timeRef} className="nv-rec-time jj-stagger" aria-label="시간 줄" onScroll={(e) => markTop(e.currentTarget)}>

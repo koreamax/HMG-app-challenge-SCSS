@@ -60,6 +60,10 @@ export function HubScreen() {
           </button>
         ))}
       </div>
+      {/* 상태별 대수 비율 (4 px 막대 하나, 각 상태 색) */}
+      <div className="ph-ratio" aria-hidden>
+        {ORDER.map((t) => (counts[t] > 0 ? <i key={t} className={TONE_CLS[t]} style={{ flexGrow: counts[t] }} /> : null))}
+      </div>
       <div className="ph-scroll">
         {filter && <div className="ph-alt">{COUNT_WORD[filter] + ' ' + shown.length + '대만 봅니다 · 다시 누르면 전체'}</div>}
         <Head title={MODEL} caption={(filter ? shown.length + ' / ' : '') + list.length + '대'} />
@@ -143,7 +147,7 @@ export function TruckScreen({ id }: { id: string }) {
     tone: t.tone,
     title: verdictWord(t.title),
     todo: t.todo,
-    // 보조 줄은 두지 않는다: 시각 · 장소는 무대 왼쪽 위 caption 한 줄, 움직인 거리는 '짐 이동' 칸이 말한다
+    // 보조 줄은 두지 않는다: 사건 시각은 받은 힘 칸, 장소는 '운행 · 점검' 첫 줄, 움직인 거리는 '짐 이동' 칸이 말한다 (무대에는 글이 없다)
     alt: null,
   }
   const limitTone: Tone = ev ? 'red' : t.limitG === null ? 'grey' : t.limitG < t.crit ? 'orange' : t.tone === 'green' ? 'green' : 'orange'
@@ -192,14 +196,8 @@ export function TruckScreen({ id }: { id: string }) {
       <AppBar title={MODEL + ' · ' + t.plate} onBack={back} extra={t.live ? <Chip tone="neutral">실시간</Chip> : null} />
       <Banner data={banner} />
       <div className="ph-scroll">
-        <Stage
-          input={t.bed}
-          short
-          tone={t.tone}
-          name={null}
-          foot={(ev ? clock(ev.at) + ' · ' : '') + t.place}
-        />
-        <div className="ph-tiles c3">
+        <Stage input={t.bed} short tone={t.tone} />
+        <div className="ph-kpis c3">
           <Tile
             tone={ev ? 'red' : 'neutral'}
             icon={<Activity size={16} strokeWidth={2} />}
@@ -207,6 +205,7 @@ export function TruckScreen({ id }: { id: string }) {
             value={ev?.peakG != null ? ev.peakG.toFixed(2) : '—'}
             unit={ev?.peakG != null ? 'g' : undefined}
             bar={ev?.peakG != null ? { ratio: ev.peakG / 1.2, mark: ev.limitG / 1.2 } : null}
+            cap={ev ? clock(ev.at) : undefined}
           />
           <Tile tone={limitTone} icon={<Gauge size={16} strokeWidth={2} />} name={limitShort(t.crit)} value={t.limitG !== null ? t.limitG.toFixed(2) : '—'} unit={t.limitG !== null ? 'g' : undefined} bar={t.limitG !== null ? { ratio: t.limitG / 1.2, mark: t.crit / 1.2 } : null} />
           <Tile
@@ -318,7 +317,7 @@ export function InspectScreen({ id, hk }: { id: string; hk: string }) {
         <div className="ph-alt">
           {hubName} · {note.arrivedAt ? hubClock(note.arrivedAt) + ' 도착' : '도착 전'} · 운송장 {t.waybill}
         </div>
-        <Head title="점검 항목" caption={done + ' / ' + (ITEMS.length + 1)} />
+        <Head title="점검 항목" caption={done + ' / ' + (ITEMS.length + 1)} progress={{ done, total: ITEMS.length + 1 }} />
         <div className="ph-list">
           {ITEMS.map((i, k) => (
             <CheckRow

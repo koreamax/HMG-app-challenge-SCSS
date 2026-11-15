@@ -5,7 +5,9 @@ import puppeteer from 'puppeteer-core'
 import { mkdirSync, writeFileSync } from 'node:fs'
 
 const BASE = process.argv[2] ?? 'http://localhost:5174/'
-const HERO_B64 = (await import('node:fs')).readFileSync('C:/Users/DANHA/DigitalTwinWorkspace/IsaacTwin/sim_real_truck/results/hero/hero_bed.png').toString('base64')
+const HERO_DIR = 'C:/Users/DANHA/DigitalTwinWorkspace/IsaacTwin/sim_real_truck/results/'
+const HERO_FS = await import('node:fs')
+const HERO_B64 = HERO_FS.readFileSync(HERO_FS.existsSync(HERO_DIR + 'hero/hero_bed.png') ? HERO_DIR + 'hero/hero_bed.png' : HERO_DIR + 'hero_bed/hero_bed.png').toString('base64')
 const OUT = new globalThis.URL('./shots/phone/', import.meta.url)
 mkdirSync(OUT, { recursive: true })
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe'

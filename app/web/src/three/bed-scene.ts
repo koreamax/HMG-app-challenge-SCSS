@@ -63,7 +63,11 @@ export type TagAnchor =
   | { kind: 'start' }
   | { kind: 'arrow' }
   | { kind: 'sensor'; which: 'c1' | 'c2' | 'tag' }
-export type StageTag = { id: string; text: string; tone: MarkTone; icon?: TagIcon; at: TagAnchor; side?: 'left' | 'right' }
+/**
+ * 꼬리표. title 이 있으면 정보 칩 (§11.5-4: [강조 점 + 이름] + 값 줄 [키 … 값]), 없으면 상태 칩 (상태 색 막대 + 한 줄 글).
+ * 정보 칩의 text 는 화면에 쓰지 않는다 (입력 호환 · 읽어 주는 글)
+ */
+export type StageTag = { id: string; text: string; tone: MarkTone; icon?: TagIcon; at: TagAnchor; side?: 'left' | 'right'; title?: string; rows?: { k: string; v: string }[] }
 /** 키트가 잰 짐 자세: 출발 때 자리에서 옮김 (m, x 오른쪽 + · z 뒤 +), 들림 (m), 기울기 (도) */
 export type BedPose = { x: number; z: number; lift: number; tilt: number }
 
@@ -93,6 +97,8 @@ export type BedInput = {
   arrowTone?: Tone
   /** 키트 센서 그리기: 앞 끝 · 뒤 끝 벨트의 장력 센서, 짐 태그 */
   sensors?: { c1: boolean; c2: boolean; tag: boolean } | null
+  /** 고른 짐 테두리 (§11.5-3): 짐 바닥 둘레 강조 선 + 짐 상자 모서리 선. 정차 3D · 위에서 보기에서만 켠다 */
+  rim?: boolean
 }
 
 export type BedView = '3d' | 'top'
@@ -119,8 +125,9 @@ const PROBLEM_GLOW = 0.1
 const L = BED.l
 const W = BED.w
 const GAP_NO_WALL = 0.35
-/** 한 화면에 꼬리표 하나 (가장 급한 것) + 순서 배지 */
-const MAX_TAGS = 1
+/** 한 화면에 꼬리표: 넓은 무대 셋 (상태 칩 1 + 정보 칩 2), 작은 무대 둘 (§11.5-4). initBedScene 의 maxTags 로 바꾼다 */
+const MAX_TAGS_LG = 3
+const MAX_TAGS_SM = 2
 /** 질감 그림 자리 (public/twin/tex) */
 const TEX_URL = (import.meta.env?.BASE_URL ?? '/') + 'twin/tex/'
 const SVG_NS = 'http://www.w3.org/2000/svg'
@@ -357,7 +364,22 @@ function autoTags(i: BedInput): StageTag[] {
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string)
 
-export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { interactive?: boolean; compact?: boolean } = {}): BedHandle {
+export type BedOptions = {
+  interactive?: boolean
+  compact?: boolean
+  /** 한 화면의 꼬리표 수 (없으면 넓은 무대 3 · 작은 무대 2) */
+  maxTags?: number
+  /** 바닥 격자 · 발판 선 (기본 켬) */
+  grid?: boolean
+  /** 첫 그림이 나온 뒤 한 번 */
+  onShown?: () => void
+  /**
+   * 카메라 맞춤을 잠근다 (트윈만 찍기): 지금 짐 대신 이 짐들의 자리 전체에 맞춘다 → 짐 종류가 바뀌어도 적재함 크기가 같다.
+   * 없으면 지금 짐 · 벨트에 맞춘다
+   */
+  fitKinds?: { kind: CargoKind; frontWall: boolean }[]
+}
+export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: BedOptions = {}): BedHandle {
   const interactive = opts.interactive ?? true
   const disposables: { dispose: () => void }[] = []
   const track = <T extends { dispose: () => void }>(o: T) => (disposables.push(o), o)
@@ -1179,7 +1201,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
    *   1 m 격자 (옅은 회색 가는 선)는 적재함 가장자리에서 1.5 m 안에서 사라진다. 바닥 반사는 거울 모양이 아니라
    *   환경 빛(PMREM)을 거칠기 0.3 으로 흐리게 비춘 것뿐 (그림 한 장 값). 색 · 알파 한 장 (1024 px)
    */
-  const FLOOR_D = 7
+  const FLOOR_D = 8
   const floorTex = canvasTex(1024, 1024, (c, w, h) => {
     const img = c.createImageData(w, h)
     const px = FLOOR_D / w
@@ -1190,23 +1212,72 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         const wz = (y + 0.5) * px - FLOOR_D / 2
         const r = Math.hypot(wx * 0.92, wz * 0.78)
         // 알파: 반지름 1.5 m 까지 진하고 3.3 m 에서 0 (부드러운 곡선)
-        const a = 1 - THREE.MathUtils.smoothstep(r, 1.3, 2.9)
-        // 격자 1 m: 선까지 거리 (m) → 폭 1.6 cm 선, 가장자리 부드럽게. 적재함에서 멀어지며 사라진다
-        const gx = Math.abs(wx - Math.round(wx))
-        const gz = Math.abs(wz - Math.round(wz))
-        const line = Math.max(1 - THREE.MathUtils.smoothstep(gx, 0.004, 0.011), 1 - THREE.MathUtils.smoothstep(gz, 0.004, 0.011))
-        const gridFade = 1 - THREE.MathUtils.smoothstep(Math.hypot(Math.max(0, Math.abs(wx) - W / 2), Math.max(0, Math.abs(wz) - L / 2)), 0.25, 1.5)
-        // 빛 웅덩이 (흐린 반사를 미리 구운 것): 적재함 오른쪽 뒤 (기본 시점의 앞쪽 바닥) 에 옅고 따뜻한 회색, 둘레로 사라진다
+        const a = 1 - THREE.MathUtils.smoothstep(r, 1.5, 3.3)
+        // 빛 웅덩이 (흐린 반사를 미리 구운 것): 적재함 오른쪽 뒤 (기본 시점의 앞쪽 바닥) 에 옅고 따뜻한 회색, 둘레로 사라진다. §11.5-1: 예전의 70 %
         const pool = Math.exp(-(((wx - 1.25) / 1.2) ** 2 + ((wz - 0.7) / 1.5) ** 2)) * 0.8 + Math.exp(-((wx / 1.6) ** 2 + (wz / 2.0) ** 2)) * 0.35
-        const v = 9 + 26 * pool + 40 * line * gridFade
+        const v = 9 + 18 * pool
         const i = (y * w + x) * 4
-        img.data[i] = v + 3 * pool
+        img.data[i] = v + 2 * pool
         img.data[i + 1] = v + 1 * pool
         img.data[i + 2] = v
         img.data[i + 3] = Math.round(255 * a)
       }
     c.putImageData(img, 0, 0)
   })
+  /**
+   * 바닥 격자 (§11.5-1, 따로 한 장: 끌 수 있게). 0.5 m 선 (--stage-grid 쯤) + 1 m 선 (--stage-grid-major 쯤), 선 폭 1.2 cm.
+   *   적재함 가장자리에서 0.6 m 까지는 그대로, 2.6 m 에서 사라진다. 흰 선의 알파만 굽는다 (색은 재료가 정한다)
+   */
+  const GRID_D = 8
+  /** 1 m 선의 진하기 (0.5 m 선은 이것의 45 %). 섞임이 선형 공간이라 화면에서는 이 값보다 훨씬 밝게 보인다: 참고 그림처럼 겨우 보이는 가는 선 */
+  const GRID_OPACITY = 0.038
+  const gridTex = canvasTex(2048, 2048, (c, w, h) => {
+    const img = c.createImageData(w, h)
+    const px = GRID_D / w
+    const lineOf = (d: number) => 1 - THREE.MathUtils.smoothstep(d, 0.002, 0.007)
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const wx = (x + 0.5) * px - GRID_D / 2
+        const wz = (y + 0.5) * px - GRID_D / 2
+        const minor = Math.max(lineOf(Math.abs(wx * 2 - Math.round(wx * 2)) / 2), lineOf(Math.abs(wz * 2 - Math.round(wz * 2)) / 2))
+        const major = Math.max(lineOf(Math.abs(wx - Math.round(wx))), lineOf(Math.abs(wz - Math.round(wz))))
+        const fade = 1 - THREE.MathUtils.smoothstep(Math.hypot(Math.max(0, Math.abs(wx) - W / 2), Math.max(0, Math.abs(wz) - L / 2)), 0.6, 2.6)
+        const i = (y * w + x) * 4
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = 255
+        // 알파는 넉넉히 굽고 (선 가장자리가 8 비트에 뭉개지지 않게) 진하기는 재료의 opacity (GRID_OPACITY) 가 정한다
+        img.data[i + 3] = Math.round(255 * Math.max(minor * 0.45, major) * fade)
+      }
+    c.putImageData(img, 0, 0)
+  }, false, true)
+  /**
+   * 발판 선 (§11.5-2): 적재함 바닥 둘레에서 0.12 m 바깥의 둥근 네모 선 (1.5 cm, 모서리 반지름 0.1 m) + 선 안팎으로 0.3 m 에 걸쳐 사라지는 옅은 빛.
+   *   알파만 굽고 색은 재료가 --accent 로 칠한다 (낮 · 밤). 움직이지 않는다
+   */
+  const PAD_OUT = 0.12
+  const PAD_M = 0.6
+  const padW = W + 2 * PAD_M
+  const padL = L + 2 * PAD_M
+  const padTex = canvasTex(768, Math.round((768 * padL) / padW), (c, w, h) => {
+    const img = c.createImageData(w, h)
+    const rad = 0.1
+    const hx = W / 2 + PAD_OUT - rad
+    const hz = L / 2 + PAD_OUT - rad
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const wx = ((x + 0.5) / w - 0.5) * padW
+        const wz = ((y + 0.5) / h - 0.5) * padL
+        // 둥근 네모까지의 부호 거리 (밖 +)
+        const qx = Math.abs(wx) - hx
+        const qz = Math.abs(wz) - hz
+        const d = Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - rad
+        const line = 1 - THREE.MathUtils.smoothstep(Math.abs(d), 0.003, 0.009)
+        const glow = d > 0 ? Math.pow(Math.max(0, 1 - d / 0.3), 2) * 0.06 : Math.pow(Math.max(0, 1 + d / 0.14), 2) * 0.06
+        const i = (y * w + x) * 4
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = 255
+        img.data[i + 3] = Math.round(255 * Math.max(line * 0.36, glow))
+      }
+    c.putImageData(img, 0, 0)
+  }, false, true)
 
   const M = {
     // 바닥: 어두운 강판 #16181B · 거칠기 0.5 · 아주 옅은 줄무늬 체크판 법선 (사진의 매끈하고 어두운 바닥). 금속 몫은 반쯤
@@ -1265,6 +1336,11 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     // 쇼룸 바닥 원판: 거의 검은 반짝이는 바닥 (거칠기 0.3, 환경 빛을 흐리게 비춘다) + 1 m 격자. 가장자리는 알파로 녹는다
     //   (빛을 받지 않는 재료: 주광 · 테두리 빛이 반짝이는 바닥에 크고 흰 반점을 만들어 무대 끝에서 잘렸다. 반사는 그림에 구운 웅덩이로)
     floor: track(new THREE.MeshBasicMaterial({ color: 0xffffff, map: floorTex, transparent: true, depthWrite: false })),
+    floorGrid: track(new THREE.MeshBasicMaterial({ color: 0xffffff, map: gridTex, transparent: true, opacity: GRID_OPACITY, depthWrite: false, toneMapped: false })),
+    // 발판 선 · 고른 짐 테두리: 강조 색 (--accent, readTheme 가 칠한다)
+    pad: track(new THREE.MeshBasicMaterial({ color: 0x34c3da, map: padTex, transparent: true, depthWrite: false, toneMapped: false })),
+    selFoot: track(new THREE.MeshBasicMaterial({ color: 0x34c3da, transparent: true, opacity: 0.8, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 })),
+    selEdge: track(new THREE.LineBasicMaterial({ color: 0x34c3da, transparent: true, opacity: 0.3, depthWrite: false, toneMapped: false })),
     // 짐 하나하나 밑 AO (상자 · 포대 · 받침이 바닥에 앉아 보이게)
     itemAo: track(new THREE.MeshBasicMaterial({ map: itemAoTex, color: 0x000000, transparent: true, depthWrite: false, opacity: 0.8, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })),
     // 짐 바로 밑 좁은 닿는 그림자 (짐 바닥 1.05 배): 진한 바닥 위에서도 짐이 바닥에 앉아 보이게
@@ -1644,8 +1720,20 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   floor.scale.set(FLOOR_D, FLOOR_D, 1)
   floor.position.y = GROUND_Y - 0.0005
   floor.renderOrder = -2
-  scene.add(floor, bedSoft, bedContact, bedTight)
-  for (const o of [ground, floor, bedSoft, bedContact, bedTight]) o.layers.set(FLOOR_LAYER)
+  // 격자 (원판 바로 위) · 발판 선 (닿는 그림자 위: 그림자에 묻히지 않게)
+  const floorGrid = new THREE.Mesh(floorPlane, M.floorGrid)
+  floorGrid.rotation.x = -Math.PI / 2
+  floorGrid.scale.set(GRID_D, GRID_D, 1)
+  floorGrid.position.y = GROUND_Y - 0.0003
+  floorGrid.renderOrder = -2
+  const pad = new THREE.Mesh(floorPlane, M.pad)
+  pad.rotation.x = -Math.PI / 2
+  pad.scale.set(padW, padL, 1)
+  pad.position.y = GROUND_Y + 0.003
+  pad.renderOrder = 1
+  floorGrid.visible = pad.visible = opts.grid !== false
+  scene.add(floor, floorGrid, bedSoft, bedContact, bedTight, pad)
+  for (const o of [ground, floor, floorGrid, bedSoft, bedContact, bedTight, pad]) o.layers.set(FLOOR_LAYER)
 
 
   // ── 적재함 (PV5 오픈베드 2,420 x 1,785 mm · 옆문 · 뒷문 355 mm · 앞 보호 틀 · 고리). 차는 그리지 않는다 ──
@@ -2032,6 +2120,39 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   ghost.visible = false
   ghost.traverse((o) => o.layers.set(FLOOR_LAYER))
   scene.add(ghost)
+  // 고른 짐 테두리 (§11.5-3): 바닥 둘레 1 cm 강조 선 (납작한 띠 넷) + 짐 묶음 상자 모서리 선. 깜박이지 않는다
+  const selRim = new THREE.Group()
+  const selFootG = track(new THREE.BufferGeometry())
+  {
+    // 단위 네모 (-0.5 … 0.5) 의 둘레 띠: 바깥 · 안쪽 꼭짓점 8 개. 안쪽 폭은 update 가 짐 크기에 맞춰 다시 쓴다
+    selFootG.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(24), 3))
+    selFootG.setIndex([0, 4, 1, 1, 4, 5, 1, 5, 2, 2, 5, 6, 2, 6, 3, 3, 6, 7, 3, 7, 0, 0, 7, 4])
+  }
+  const selFoot = new THREE.Mesh(selFootG, M.selFoot)
+  selFoot.renderOrder = 4
+  const selEdges = new THREE.LineSegments(track(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1))), M.selEdge)
+  selEdges.renderOrder = 4
+  selRim.add(selFoot, selEdges)
+  selRim.visible = false
+  scene.add(selRim)
+  function setSelRim(on: boolean, b: THREE.Box3) {
+    selRim.visible = on && !b.isEmpty()
+    if (!selRim.visible) return
+    const o = 0.03
+    const t = 0.012
+    const x0 = b.min.x - o
+    const x1 = b.max.x + o
+    const z0 = b.min.z - o
+    const z1 = b.max.z + o
+    const y = 0.006
+    const p = selFootG.getAttribute('position') as THREE.BufferAttribute
+    const pts = [x0, z0, x1, z0, x1, z1, x0, z1, x0 + t, z0 + t, x1 - t, z0 + t, x1 - t, z1 - t, x0 + t, z1 - t]
+    for (let k = 0; k < 8; k++) p.setXYZ(k, pts[k * 2], y, pts[k * 2 + 1])
+    p.needsUpdate = true
+    selFootG.computeBoundingSphere()
+    selEdges.scale.set(b.max.x - b.min.x + 0.06, Math.max(0.01, b.max.y - 0.006 + 0.03), b.max.z - b.min.z + 0.06)
+    selEdges.position.set((b.min.x + b.max.x) / 2, (b.max.y + 0.03 + 0.006) / 2, (b.min.z + b.max.z) / 2)
+  }
   /** 흐린 자리가 차지하는 범위 (세계 좌표, 적재함 안쪽으로 자름, 높이는 GHOST_MAX_H 까지): 꼬리표 기준점 · 겹침 · 볼 범위에 쓴다 */
   const ghostBounds = new THREE.Box3()
   function setGhost(on: boolean, w: number, h: number, l: number, at: THREE.Vector3) {
@@ -2078,9 +2199,17 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
 
   function setTags(list: StageTag[]) {
     const seen = new Set<string>()
-    for (const t of list.slice(0, MAX_TAGS)) {
+    for (const t of list) {
       seen.add(t.id)
-      const html = `<i class="dot"></i><b>${esc(t.text)}</b>`
+      const info = !!t.title
+      // 값이 하나뿐이고 키가 없으면 (잰 값 칩: '짐 태그 · 제자리') 이름 줄 오른쪽에 값을 둔다 (한 줄 칩)
+      const rows = t.rows ?? []
+      const solo = rows.length === 1 && !rows[0].k
+      const html = info
+        ? `<div class="hd"><i class="pt"></i><b>${esc(t.title ?? '')}</b>${solo ? `<em>${esc(rows[0].v)}</em>` : ''}</div>` +
+          (solo ? '' : rows.map((r) => `<div class="rw"><span>${esc(r.k)}</span><em>${esc(r.v)}</em></div>`).join(''))
+        : `<i class="dot"></i><b>${esc(t.text)}</b>`
+      const kind = info ? (t.icon === 'gauge' || t.icon === 'tag' ? ' info meas' : ' info') : ''
       let e = tagEls.get(t.id)
       if (!e) {
         const el = document.createElement('div')
@@ -2092,12 +2221,12 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         tagLayer.appendChild(el)
         el.dataset.id = t.id
         // 빨강 꼬리표는 처음 한 번만 점이 퍼진다
-        el.className = 'bv-tag ' + toneClass(t.tone) + (t.tone === 'red' ? ' new' : '')
+        el.className = 'bv-tag ' + toneClass(t.tone) + kind + (t.tone === 'red' ? ' new' : '')
         e = { el, line, dot, html: '', w: 0, h: 0, at: t.at, side: t.side, x: 0, y: 0 }
         tagEls.set(t.id, e)
       } else {
         const keepNew = e.el.classList.contains('new') && t.tone === 'red'
-        e.el.className = 'bv-tag ' + toneClass(t.tone) + (keepNew ? ' new' : '')
+        e.el.className = 'bv-tag ' + toneClass(t.tone) + kind + (keepNew ? ' new' : '')
       }
       e.at = t.at
       e.side = t.side
@@ -2105,9 +2234,9 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         e.html = html
         e.el.innerHTML = html
       }
-      e.line.setAttribute('class', toneClass(t.tone))
+      e.line.setAttribute('class', toneClass(t.tone) + kind)
       // 치수선에 닿는 끌어 선은 끝 고리를 그리지 않는다 (선 위에 마디처럼 얹히지 않게)
-      e.dot.setAttribute('class', toneClass(t.tone) + (t.at.kind === 'arrow' ? ' at-arrow' : ''))
+      e.dot.setAttribute('class', toneClass(t.tone) + kind + (t.at.kind === 'arrow' ? ' at-arrow' : ''))
     }
     for (const [id, e] of tagEls) {
       if (seen.has(id)) continue
@@ -2179,6 +2308,9 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     const sh = parseFloat(cs.getPropertyValue('--stage-shadow'))
     groundMat.opacity = Number.isFinite(sh) && sh > 0 ? sh : n ? 0.8 : 0.75
     renderer.toneMappingExposure = n ? 0.92 : 1.0
+    // 강조 색 (--accent): 발판 선 · 고른 짐 테두리
+    const acc = cs.getPropertyValue('--accent').trim()
+    if (/^#[0-9a-f]{6}$/i.test(acc)) for (const m of [M.pad, M.selFoot, M.selEdge]) m.color.set(acc)
     invalidate()
   }
   const themeMo = new MutationObserver(() => readTheme())
@@ -2225,7 +2357,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     sensors.position.set(ox, 0, oz)
   }
   /** 벨트별 기준점: 위 왼쪽 모서리 · 위 오른쪽 모서리 · 버클 (보는 쪽 = 오른쪽) · 장력 센서 */
-  let beltPts: { topL: THREE.Vector3; topR: THREE.Vector3; buckle: THREE.Vector3; cell: THREE.Vector3; sideR: THREE.Vector3; edgeL: THREE.Vector3; tanR: THREE.Vector3; hookR: THREE.Vector3 }[] = []
+  let beltPts: { topL: THREE.Vector3; topR: THREE.Vector3; buckle: THREE.Vector3; cell: THREE.Vector3; sideR: THREE.Vector3; edgeL: THREE.Vector3; tanR: THREE.Vector3; hookR: THREE.Vector3; hookL: THREE.Vector3 }[] = []
   let arrow: { a: THREE.Vector3; b: THREE.Vector3 } | null = null
   const startBox = new THREE.Box3()
   const cargoBox = new THREE.Box3()
@@ -2262,7 +2394,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       i.belts.map((b) => [!!b.hint, b.loose ?? null, b.tone === 'red']),
       i.sensors ?? null,
     ])
-    const sceneKey = JSON.stringify([shadowKey, i.belts.map((b) => b.tone), i.ghost, !!i.focus])
+    const sceneKey = JSON.stringify([shadowKey, i.belts.map((b) => b.tone), i.ghost, !!i.focus, !!i.rim])
     if (sceneKey === lastSceneKey && input) {
       // 꼬리표 · 배지 글 · 화살 색만 바뀌었다: 3D 는 그대로, 겹침 자리만 다시 고른다
       input = i
@@ -2351,6 +2483,11 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     startBox.set(new THREE.Vector3(-spec.w / 2, 0, zc - spec.l / 2), new THREE.Vector3(spec.w / 2, spec.h, zc + spec.l / 2))
     if (hidden) cargoBox.copy(startBox)
     else cargoBox.setFromObject(cargoBody)
+    // 고른 짐 테두리: 짐 묶음의 설계 크기 (닿는 그림자 판 · 보호대까지 넣은 cargoBox 는 짐보다 크다)
+    setSelRim(
+      !!i.rim && !hidden && !i.empty && Math.abs(tilt) < 3 && lift < 0.01,
+      new THREE.Box3(new THREE.Vector3(px - spec.w / 2, 0, cz - spec.l / 2), new THREE.Vector3(px + spec.w / 2, spec.h, cz + spec.l / 2)),
+    )
 
     // 닿는 그림자: 짐 밑 바닥에 (들리면 옅어진다)
     contact.visible = !hidden
@@ -2522,7 +2659,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
         mesh(G.cell, M.sensorBody, sensors, cell.x + 0.016, cell.y, cell.z).rotation.z = -leanL
         mesh(G.led, M.sensor, sensors, cell.x + 0.05, cell.y, cell.z, false).rotation.z = -leanL
       }
-      beltPts.push({ topL: top[1].clone(), topR: top[2].clone(), buckle, cell, sideR: a2.clone().lerp(c, 0.82), edgeL: top[0].clone(), tanR: c.clone(), hookR: a2.clone() })
+      beltPts.push({ topL: top[1].clone(), topR: top[2].clone(), buckle, cell, sideR: a2.clone().lerp(c, 0.82), edgeL: top[0].clone(), tanR: c.clone(), hookR: a2.clone(), hookL: a.clone() })
     }
 
     // 벨트 · 센서 · 모서리 보호대 부품을 재료마다 한 덩어리로 (벨트 넷 = 그리기 대여섯 번).
@@ -2595,7 +2732,14 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) pts.push(new THREE.Vector3(x, y, z))
       want.union(b)
     }
-    if (!i.empty) {
+    if (opts.fitKinds?.length) {
+      // 잠근 맞춤: 고를 수 있는 짐들의 자리 전체 (지금 짐과 상관없이 같은 카메라)
+      for (const f of opts.fitKinds) {
+        const sz = CARGO[f.kind].size
+        const zf = cargoCenterZ(f.kind, f.frontWall)
+        addBox(new THREE.Box3(new THREE.Vector3(-sz.w / 2, 0, zf - sz.l / 2), new THREE.Vector3(sz.w / 2, sz.h, zf + sz.l / 2)))
+      }
+    } else if (!i.empty) {
       if (!hidden) addBox(cargoBox)
       if (ghost.visible || hidden) addBox(ghostBounds)
       // 꼬리표 기준점 (벨트 띠 위 · 버클)도 범위 안에. 짐이 없어지면(이탈) 그 점들은 사라진 짐 자세를 따라 멀리 있으므로 뺀다
@@ -2625,15 +2769,16 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   function applyTags(i: BedInput) {
     // 폰 무대(작은 무대)는 한 번에 하나만: 꼬리표 하나 (화살이 있으면 화살 꼬리표) + 화살. 순서 배지는 화면의 순서 목록이 맡는다
     const small = tagLayer.parentElement?.getAttribute('data-size') === 'sm'
-    let tagList = (i.tags ?? autoTags(i)).filter((t) => t.at.kind !== 'arrow' || arrow)
-    if (small) {
-      const a = tagList.find((t) => t.at.kind === 'arrow')
-      tagList = a ? [a] : tagList.slice(0, 1)
-    } else {
-      // 내비도 꼬리표는 하나: 가장 급한 것 (빨강 > 주황 > 나머지, 같으면 넘겨 준 순서)
-      const rank = (t: MarkTone) => (t === 'red' ? 0 : t === 'orange' ? 1 : 2)
-      tagList = [...tagList].sort((a, b) => rank(a.tone) - rank(b.tone))
-    }
+    const cap = Math.max(1, opts.maxTags ?? (small ? MAX_TAGS_SM : MAX_TAGS_LG))
+    const all = (i.tags ?? autoTags(i)).filter((t) => t.at.kind !== 'arrow' || arrow)
+    // 상태 칩은 하나 (작은 무대: 화살이 있으면 화살 꼬리표, 넓은 무대: 빨강 > 주황 > 나머지), 나머지 자리는 정보 칩 (넘겨 준 순서)
+    const rank = (t: MarkTone) => (t === 'red' ? 0 : t === 'orange' ? 1 : 2)
+    const status = all.filter((t) => !t.title)
+    const infos = all.filter((t) => !!t.title)
+    const lead = small ? (status.find((t) => t.at.kind === 'arrow') ?? status[0]) : null
+    const ranked = lead ? [lead] : [...status].sort((a, b) => rank(a.tone) - rank(b.tone))
+    // 넓은 무대는 넘겨 준 상태 칩을 그대로 (화면이 미리 골라 준다), 작은 무대는 하나
+    const tagList = [...(small ? ranked.slice(0, 1) : ranked), ...infos].slice(0, cap)
     setTags(tagList)
     setBadges(i.empty || hidden || small ? [] : i.belts)
   }
@@ -2834,7 +2979,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     //   (내비 알림은 잠깐 뜨는 것이라 맞춤에 넣지 않는다: 알림이 뜰 때 적재함이 작아지지 않게)
     const small = root.getAttribute('data-size') === 'sm'
     for (const r of stageUi()) {
-      if (r.w < v.w * 0.3 || r.h > v.h * 0.2) continue
+      if (r.w < v.w * 0.3 || r.h > v.h * 0.22) continue
       if (r.y < top + v.h * 0.15) top = Math.max(top, r.y + r.h)
       else if (small && r.y + r.h > bottom - v.h * 0.15) bottom = Math.min(bottom, r.y)
     }
@@ -2862,7 +3007,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     // 렌즈 이동: 장면 가운데(캔버스 가운데)를 보이는 무대 가운데로 (시점 각도는 그대로). 위아래는 가운데보다 4 % 위
     //   (적재함 밑 접지 그림자가 아래로 번지고, 내비 알림은 아래 가운데에 뜬다: 위 빈 띠를 줄인다)
     const dx = vis.x + vis.w / 2 - width / 2
-    let dy = vis.y + vis.h * 0.46 - height / 2
+    //   (트윈만 찍기의 위에서 보기는 알림이 없으니 한가운데)
+    let dy = vis.y + vis.h * (top && opts.fitKinds?.length ? 0.5 : 0.46) - height / 2
     if (!top) {
       // 사진처럼 적재함을 무대 아래로 앉힌다: 가장 아래 점(가까운 모서리 밑)이 보이는 무대 아래 끝 가까이 오게.
       //   (위로 남는 자리는 꼬리표 몫. 위 끝은 무대 위 끝 3 % 아래까지만 올라간다)
@@ -3173,7 +3319,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
   ]
   const DECK_BOX = boxOf(-W / 2, 0, -L / 2, W / 2, 0, L / 2)
   /** 기준점이 옆문 · 뒷문 · 앞 판 뒤에 가려 안 보이는지 (카메라 -> 점 선분이 문 판을 지나는지). 위에서 보기는 가리는 것 없음 */
-  function gateHides(p: THREE.Vector3) {
+  function gateHides(p: THREE.Vector3, margin = 0) {
     if (active === ortho) return false
     const c = camera.position
     const planes: [axis: 'x' | 'z', at: number, top: number][] = [
@@ -3190,10 +3336,38 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       const y = p.y + (c.y - p.y) * t
       const o = ax === 'x' ? p.z + (c.z - p.z) * t : p.x + (c.x - p.x) * t
       const half = ax === 'x' ? L / 2 + 0.05 : W / 2 + 0.05
-      if (y > -0.05 && y < top && Math.abs(o) < half) return true
+      if (y > -0.05 && y < top + margin && Math.abs(o) < half) return true
     }
     return false
   }
+
+  /**
+   * 보는 쪽 내려오는 띠에서 옆문 위로 보이는 가장 낮은 점. 버클이 옆문 뒤에 가리면 (낮은 시점) 배지 · 벨트 칩의 끌어 선이
+   * 문 판 한가운데가 아니라 띠가 문 위로 올라오는 곳을 가리키게 한다. 버클이 보이면 버클 그대로
+   */
+  function strapSeen(b: (typeof beltPts)[number], from: THREE.Vector3 = b.buckle): THREE.Vector3 {
+    const off = straps.position
+    const buckle = from.clone().add(off)
+    // 옆문 윗 덮개 선에서 5 cm 넘게 올라와 있어야 '보인다' (덮개 선에 걸친 점은 문 판을 가리키는 것처럼 읽힌다)
+    if (hidden || active === ortho || !gateHides(buckle, 0.05)) return buckle
+    // 띠 길: 버클 → 짐 옆면에 닿는 곳 (tanR) → 옆면을 따라 위 모서리 (topR). 3 cm 씩 올라가며 처음 보이는 점
+    const path = [buckle, b.tanR.clone().add(off), b.topR.clone().add(off)]
+    let p = path[2]
+    walk: for (let k = 0; k < 2; k++) {
+      const n = Math.max(1, Math.ceil(path[k].distanceTo(path[k + 1]) / 0.03))
+      for (let j = 1; j <= n; j++) {
+        const q = path[k].clone().lerp(path[k + 1], j / n)
+        if (!gateHides(q, 0.05)) {
+          p = q
+          break walk
+        }
+      }
+    }
+    lowPts.add(p)
+    return p
+  }
+  /** strapSeen 이 버클 대신 내준 점 (그 아래는 옆문뿐이라 끌어 선이 아래로 내려가도 짐을 가로지르지 않는다) */
+  const lowPts = new WeakSet<THREE.Vector3>()
 
   /** 꼬리표가 붙을 수 있는 자리 (세계 좌표 여럿). 장면이 고르는 것은 화면에서 가장 짧고 짐을 가로지르지 않는 끌어 선 */
   function anchorsOf(at: TagAnchor): THREE.Vector3[] {
@@ -3211,14 +3385,18 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       const b = beltPts[at.index]
       if (!b) return []
       if (hidden) return [b.buckle]
-      // 짐 위 띠 양 끝 · 보는 쪽 내려오는 띠 · 버클 (슬라이드 중이면 같이 옮긴다)
-      return [b.topL, b.topR, b.sideR, b.buckle].map((p) => p.clone().add(off))
+      // 짐 위 띠 양 끝 · 보는 쪽 내려오는 띠 · 버클 (슬라이드 중이면 같이 옮긴다). 버클이 옆문에 가리면 띠가 문 위로 올라오는 점
+      const pts = [...[b.topL, b.topR, b.sideR].map((p) => p.clone().add(off)), strapSeen(b)]
+      // 위에서 보기: 짐 밖으로 고리까지 뻗은 띠의 가운데도 (짐 윗면 끝에서는 끌어 선이 짐 가장자리를 따라 달려 자리가 안 난다)
+      if (active === ortho) pts.push(b.hookL.clone().lerp(b.edgeL, 0.5).add(off), b.hookR.clone().lerp(b.tanR, 0.5).add(off))
+      return pts
     }
     if (at.kind === 'sensor') {
       if (at.which === 'tag') return hidden ? topCorners(sb) : [tagPuck.localToWorld(new THREE.Vector3(0, 0.03, 0))]
       const k = at.which === 'c1' ? 0 : beltPts.length - 1
-      const c = beltPts[k]?.cell
-      return c ? [c.clone().add(off)] : []
+      // 장력 센서도 버클처럼: 옆문에 가리면 띠가 문 위로 올라오는 점
+      const bp = beltPts[k]
+      return bp ? [strapSeen(bp, bp.cell)] : []
     }
     if (at.kind === 'arrow') return arrow ? [arrow.a.clone().lerp(arrow.b, 0.5), arrow.a.clone()] : []
     if (at.kind === 'start') return topCorners(sb)
@@ -3314,6 +3492,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     const ui = stageUi()
     const taken: Rc[] = [...ui]
     const gateHulls = active === ortho ? [] : GATE_BOXES.map((b) => boxHull(b))
+    // 앞 보호 틀 (관 틀): 정보 칩이 그 위에 얹히면 틀과 글이 엉킨다 → 조금 피한다 (상태 칩은 문제 벨트 가까이가 먼저라 약하게)
+    const headHull = active === ortho ? [] : boxHull(boxOf(-W / 2 - 0.04, BED.sideH + 0.04, -L / 2 - 0.065, W / 2 + 0.04, BED.wallH + 0.03, -L / 2))
 
     // 화살 (4px, 화면에서 짧으면 56px 까지 늘린다). 화살 끝은 늘 지금 짐의 뒤쪽 면에 닿고, 늘릴 때는 꼬리를 뒤로 늘린다
     //   (앞으로 늘리면 화살 머리가 짐 위에 올라앉는다)
@@ -3388,7 +3568,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       hcy += p.y / Math.max(1, cargoHull.length)
     }
     for (const b of [...badgeEls.values()].sort((a, c) => a.n - c.n)) {
-      const pts = b.belts.map((k) => beltPts[k]).map((p) => (p ? toScreen(p.buckle.clone().add(straps.position)) : null))
+      const pts = b.belts.map((k) => beltPts[k]).map((p) => (p ? toScreen(strapSeen(p)) : null))
       const shown = pts.filter((s): s is { x: number; y: number; behind: boolean } => !!s && !s.behind)
       if (!shown.length) {
         b.el.style.opacity = '0'
@@ -3465,9 +3645,39 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     //   점수 = 끌어 선 길이 + 짐 위를 지난 길이 x 8 + 출발 때 자리 · 화살과 겹침 벌점. 못 찾으면 길이 · 짐 조건을 풀어 다시.
     const lens = [0.3, 0.55, 0.8, 1].map((k) => k * cap)
     const looser = [1.4, 2, 2.8].map((k) => k * cap)
+    // (넓은 무대는 더 길게도: 낮은 창에서 벨트 칩이 앞 보호 틀 위 대신 적재함 앞 빈 바닥까지 내려갈 수 있게)
+    const infoLens = (lg ? [0.4, 0.8, 1.2, 1.7, 2.3, 2.9, 3.5] : [0.4, 0.8, 1.2, 1.7, 2.3]).map((k) => k * cap)
+    // 칩끼리는 넓은 무대에서 24 px 넘게 띄운다 (붙어 있으면 한 덩어리로 읽힌다)
+    const tagRects: Rc[] = []
+    const tagGap = lg ? 24 : 8
+    // 위에서 보기: 칩이 적재함 테두리(옆문 · 발판 선)에 걸치지 않게 — 바닥 안쪽에 통째로 들어가거나 발판 선 밖에
+    let railIn: Rc | null = null
+    let railOut: Rc | null = null
+    if (active === ortho) {
+      const rc = (mx: number, mz: number): Rc => {
+        const a = toScreen(new THREE.Vector3(-W / 2 - mx, 0, -L / 2 - mz))
+        const b = toScreen(new THREE.Vector3(W / 2 + mx, 0, L / 2 + mz))
+        return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) }
+      }
+      railIn = rc(-0.1, -0.1)
+      railOut = rc(PAD_OUT + 0.04, PAD_OUT + 0.04)
+    }
+    const within = (r: Rc, o: Rc) => r.x >= o.x && r.y >= o.y && r.x + r.w <= o.x + o.w && r.y + r.h <= o.y + o.h
+    // 위에서 보기: 짐 밖으로 고리까지 뻗은 띠 (양쪽). 정보 칩이 띠 · 더 걸 자리 띠를 덮지 않게
+    const strapSegs: [P2, P2][] = []
+    if (active === ortho && !hidden) {
+      const off = straps.position
+      const sc = (v: THREE.Vector3) => {
+        const q = toScreen(v.clone().add(off))
+        return { x: q.x, y: q.y }
+      }
+      for (const b of beltPts) strapSegs.push([sc(b.hookL), sc(b.edgeL)], [sc(b.hookR), sc(b.tanR)])
+    }
     // 적재함 몸통 윤곽 (옆문 · 뒷문 · 윗 덮개까지, 앞 보호 틀 관은 빼고): 화살 꼬리표는 이 밖에 둔다 (적재함 테두리를 가로질러 덮지 않게)
     const bedHull = active === ortho ? [] : boxHull(boxOf(-W / 2 - 0.045, -0.05, -L / 2 - 0.05, W / 2 + 0.045, BED.sideH + 0.05, L / 2 + 0.045))
-    for (const e of tagEls.values()) {
+    // 상태 칩 먼저 (문제 벨트 가까운 자리가 먼저), 그다음 정보 칩: 같은 id 의 정보 칩이 먼저 만들어져 있어도 상태 칩이 그 끌어 선 위에 앉지 않게
+    const placeOrder = [...tagEls.values()].sort((a, b) => Number(a.el.classList.contains('info')) - Number(b.el.classList.contains('info')))
+    for (const e of placeOrder) {
       // 문 뒤에 가린 기준점은 빼되, 모두 가렸으면 (화살처럼 화면 위에 그린 것) 그대로 쓴다
       const all = anchorsOf(e.at)
       const seen = all.filter((p) => !gateHides(p))
@@ -3477,9 +3687,11 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
               { x: (arrowScr.a.x + arrowScr.b.x) / 2, y: (arrowScr.a.y + arrowScr.b.y) / 2, behind: false },
               { x: arrowScr.a.x, y: arrowScr.a.y, behind: false },
             ]
-          : (seen.length ? seen : all).map((p) => toScreen(p)).filter((s) => !s.behind)
+          : (seen.length ? seen : all).map((p) => ({ ...toScreen(p), low: lowPts.has(p) })).filter((s) => !s.behind)
       e.w = e.el.offsetWidth
       e.h = e.el.offsetHeight
+      // 정보 칩은 적재함 밖 빈 바닥으로 끌어 낸다 (끌어 선이 길어도 된다): 짐 · 옆문 · 문제 벨트를 덮지 않게
+      const isInfo = e.el.classList.contains('info')
       let best = null as { x: number; y: number; qx: number; qy: number; ax: number; ay: number; score: number; key: string } | null
       const prev = lastPick.get(e.el.dataset.id ?? '')
       for (const strict of [true, false]) {
@@ -3487,10 +3699,11 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
           const p = opts[ai]
           if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) continue
           // 짐 면 위의 기준점 (센서 · 버클): 짐 윤곽 밖으로 나가는 가장 짧은 길(깊이)만큼은 짐 위를 지나도 된다
-          const base = hidden ? 0 : Math.max(0, depthIn(p, cargoHull))
+          const low = 'low' in p && p.low
+          const base = hidden || low ? 0 : Math.max(0, depthIn(p, cargoHull))
           for (let di = 0; di < DIRS.length; di++) {
             const d = DIRS[di]
-            const ls = strict ? lens : looser
+            const ls = strict ? (isInfo ? infoLens : lens) : looser
             for (let li = 0; li < ls.length; li++) {
               const Ln = base * 1.1 + ls[li]
               const qx = p.x + d.x * Ln
@@ -3508,14 +3721,26 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
               const r = { x, y, w: e.w, h: e.h }
               if (taken.some((t) => rectsHit(r, t, 8))) continue
               let score = Ln
-              const onCargo = rectHitsPoly(r, cargoHull, 6)
+              if (tagRects.some((t) => rectsHit(r, t, tagGap))) {
+                if (strict) continue
+                score += 500
+              }
+              // (위에서 보기는 짐 윤곽이 반듯한 네모라 조금 더 붙어도 된다: 옆문과 짐 사이가 좁다)
+              const flatView = active === ortho
+              const onCargo = rectHitsPoly(r, cargoHull, flatView ? 3 : 6)
               if (strict && onCargo) continue
-              const inside =Math.max(0, insideLen({ x: qx, y: qy }, p, cargoHull) - base * 1.1)
-              if (strict && (onCargo || inside > 18)) continue
+              // (띠가 옆문 위로 올라오는 점에서 아래로 내린 선은 문 판 위만 지난다: 문 뒤 짐은 보이지 않는다)
+              const inside = low && d.y > 0.25 ? 0 : Math.max(0, insideLen({ x: qx, y: qy }, p, cargoHull) - base * 1.1)
+              if (strict && (onCargo || inside > (flatView ? 26 : 18))) continue
               // 끌어 선이 배지 위를 지나지 않게 (배지 둘레 6 px)
               const crossBadge = badgeRects.some((t) => segHitsRect({ x: qx, y: qy }, p, t, 6))
               if (strict && crossBadge) continue
               if (crossBadge) score += 300
+              // 끌어 선이 먼저 놓은 칩 위를 지나지 않게 (넓은 무대의 정보 칩은 아예 그런 자리를 고르지 않는다)
+              if (taken.some((t) => segHitsRect({ x: qx, y: qy }, p, t, 2))) {
+                if (strict && isInfo && lg && tagRects.some((t) => segHitsRect({ x: qx, y: qy }, p, t, 4))) continue
+                score += 220
+              }
               if (onCargo) score += 600
               score += inside * 8
               if (!strict) score += Math.max(0, Ln - base * 1.1 - cap) * 3
@@ -3526,9 +3751,24 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
               if (ghostHull.length && rectHitsPoly(r, ghostHull, 4)) score += 120
               if (chevHull.length && rectHitsPoly(r, chevHull, 4)) score += 60
               // 옆문 · 뒷문 위에 걸치면 (알약이 적재함 테두리를 덮어 어수선하다) 조금 피한다
-              for (const g of gateHulls) if (rectHitsPoly(r, g, 2)) score += 45
+              for (const g of gateHulls) if (rectHitsPoly(r, g, 2)) score += isInfo ? (lg ? 320 : 160) : 45
+              // 앞 보호 틀 위: 정보 칩은 두지 않는다 (관 틀과 글이 엉키고 상태 칩과 붙는다). 자리가 정 없을 때만
+              if (headHull.length && rectHitsPoly(r, headHull, 2)) {
+                if (strict && isInfo && lg) continue
+                score += isInfo ? 420 : 20
+              }
+              if (railIn && railOut && !within(r, railIn) && rectsHit(r, railOut)) {
+                if (strict && isInfo) continue
+                score += isInfo ? 320 : 60
+              }
+              if (isInfo && strapSegs.some(([a, c]) => segHitsRect(a, c, r, 6))) {
+                if (strict) continue
+                score += 260
+              }
+              // 오른쪽 칩 (벨트)은 아래 오른쪽 빈 바닥으로 (위는 앞 보호 틀 · 상태 칩 자리)
+              if (isInfo && lg && e.side === 'right' && d.y < -0.25 && active !== ortho) score += 80
               if (arrowRect && e.at.kind !== 'arrow' && rectsHit(r, arrowRect)) score += 200
-              if (e.side && (e.side === 'left') !== d.x < 0) score += 6
+              if (e.side && (e.side === 'left') !== d.x < 0) score += e.el.classList.contains('info') ? 60 : 6
               const key = ai + ':' + di + ':' + li + ':' + strict
               if (key === prev) score -= 14
               if (!best || score < best.score) best = { x, y, qx, qy, ax: p.x, ay: p.y, score, key }
@@ -3547,6 +3787,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       e.x = best.x
       e.y = best.y
       taken.push({ x: e.x, y: e.y, w: e.w, h: e.h })
+      tagRects.push({ x: e.x, y: e.y, w: e.w, h: e.h })
       e.el.style.transform = `translate3d(${Math.round(e.x)}px, ${Math.round(e.y)}px, 0)`
       e.el.style.opacity = '1'
       // 끌어 선: 꼬리표 가장자리(q)에서 기준점까지. 끝 점은 기준점에
@@ -3780,6 +4021,8 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
     M.swage.envMapIntensity = SWAGE_ENV * (flat ? 0.6 : 1)
     // 바닥 원판의 빛 웅덩이는 비스듬히 볼 때의 반사라 위에서 보기에서는 옅게
     M.floor.opacity = flat ? 0.55 : 1
+    // 발판 선: 위에서 보면 적재함 둘레 전체가 한 번에 보여 테두리처럼 세다 → 알파 0.36 → 0.2 쯤
+    M.pad.opacity = flat ? 0.55 : 1
     M.gateCap.color.setHex(flat ? 0x6a7076 : 0xc4cad0)
     M.gateCap.roughness = flat ? 0.45 : 0.16
     M.post.color.setHex(flat ? 0x43484e : 0x50565d)
@@ -3805,6 +4048,7 @@ export function initBedScene(host: HTMLElement, tagLayer: HTMLElement, opts: { i
       // 처음 그린 뒤: 포스터(첫 그림 전 자리 그림)에서 480 ms 에 걸쳐 바뀐다 (움직임 허용일 때만, 아니면 바로).
       //   꼬리표 층은 첫 자리 잡기(placeOverlay) 뒤에야 보인다 (그 전에는 끌어 선 점이 왼쪽 끝 (0, y) 에 떠 있었다)
       shown = true
+      opts.onShown?.()
       tagLayer.style.visibility = ''
       const cv = renderer.domElement
       if (moving) {

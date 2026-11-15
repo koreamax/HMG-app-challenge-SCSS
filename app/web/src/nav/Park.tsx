@@ -1,9 +1,9 @@
 /**
- * 4.1 내비 · 정차 3D 확인. 판정 머리(할 일 하나) -> 3D 무대 -> 칸 넷(버티는 제동 · 짐 · 벨트 · 앞벽) · 할 일 카드(눈으로 확인).
+ * 4.1 내비 · 정차 3D 확인 (v5 대시보드 트윈, §11.4). 지표 줄(버티는 제동 · 짐 · 벨트 · 앞벽) → 3D 무대 (+ 아래 줄 카드: 계산 근거 · 짐 종류) · 오른 단 판정 판 · 할 일 판(눈으로 확인) · 벨트 장력 판.
  * 할 일 단추는 verdict.kind 로: slide '벨트 바꾸기' · tip '넘어짐 봤어요' · none '상차 정보 넣기' · ok 버금 단추 '다 확인했어요'.
- * 3D 는 주황 판정이면 문제 표시 하나 (색을 띤 벨트 또는 더 걸 자리 띠 하나 + 꼬리표 하나, oneProblem).
- * 칸 (v5): 이름 label muted -> 값 value 잉크 -> 막대 4 CSS px -> 기준. 상태는 막대 색과 오른쪽 위 점만 (테두리 · 색 면 없음).
- * 왜 눈으로 보는지는 카드 머리의 정보 단추 뒤에 둔다 (화면에 보조 설명을 늘어놓지 않는다).
+ * 3D 는 주황 판정이면 문제 표시 하나 (색을 띤 벨트 또는 더 걸 자리 띠 하나 + 상태 칩 하나, oneProblem) + 정보 칩 둘 (짐 · 벨트).
+ * 지표 칸: 둥근 아이콘 · 이름 · 값. 상태는 막대 색과 이름 옆 점만 (값은 잉크색). 기준 눈금 · 기준 글은 둘째 강조 색.
+ * 왜 눈으로 보는지는 판 머리의 정보 단추 뒤에 둔다 (화면에 보조 설명을 늘어놓지 않는다).
  */
 import { useMemo, useState } from 'react'
 import { Check, ChevronRight, Info, X } from 'lucide-react'
@@ -12,11 +12,12 @@ import { BED } from '@/engine/constants'
 import type { LoadInput, LoadVerdict } from '@/engine/limit'
 import { app, closeWaybill, setEyeCheck, toast, unloadSome } from '@/runtime/runtime'
 import { useStore } from '@/runtime/store'
-import { stageInput } from '@/three/bed-input'
+import { infoChips, stageInput } from '@/three/bed-input'
 import type { BedInput, BeltMark, MarkTone, StageTag } from '@/three/bed-scene'
 import { fmtG, fmtN } from '@/ui/format'
-import { Button, ChecklistRow, StatusChip, Tile, useRolled } from '@/ui/parts'
-import { Banner, ParkFrame, Stage, type BannerProps } from './Frame'
+import { useFrameSize } from '@/ui/Fit'
+import { Button, CargoGlyph, ChecklistRow, GGaugeIcon, HeadboardIcon, StatusChip, StrapIcon, useRolled } from '@/ui/parts'
+import { Banner, KindPicker, Kpi, PanelHead, ParkFrame, Progress, Stage, type BannerProps } from './Frame'
 import { useAlert, useKit, useParkShape, useVerdict } from './hooks'
 import { nav, openSheet, toggleDetail, useNav } from './state'
 
@@ -95,13 +96,14 @@ export function Park() {
   const hasWaybill = useStore(app, (s) => !!s.waybill)
   const stage = useMemo(() => {
     const out = stageInput({ load, verdict: v, kit, alert, mode: view === 'kit' ? 'kit' : 'park' })
-    // 센서 키트 보기는 잰 값이 목적이라 그대로. 3D · 위에서 보기는 문제 표시 하나
-    return view === 'kit' || !load || !v ? out : { ...out, input: oneProblem(out.input, v, load) }
+    // 센서 키트 보기는 잰 값이 목적이라 그대로. 3D · 위에서 보기는 문제 표시 하나 + 정보 칩 (짐 · 벨트) + 고른 짐 테두리
+    if (view === 'kit' || !load || !v) return out
+    const one = oneProblem(out.input, v, load)
+    return { ...out, input: { ...one, rim: true, tags: [...(one.tags ?? []), ...infoChips(one, v, load)] } }
   }, [load, v, kit, alert, view])
   const rolled = useRolled(v?.limit ?? 0)
-  // 1224 x 880 · 1920 x 1080: 이름 -> 값 -> 막대 -> 기준. 낮은 창 · 세로 창: 기준을 이름 오른쪽에
   const shape = useParkShape()
-  const below = shape !== 'tall'
+  const { H } = useFrameSize()
   const { checks, eye, doneN } = useEyeChecks()
 
   const judged = !!load && !!v && v.kind !== 'none'
@@ -112,7 +114,7 @@ export function Park() {
   if (kind === 'slide') action = { label: '벨트 바꾸기', onClick: () => openSheet('load') }
   else if (kind === 'tip') action = { label: eye['넘어짐'] ? '넘어짐 확인함' : '넘어짐 봤어요', onClick: () => setEyeCheck('넘어짐', true), disabled: !!eye['넘어짐'] }
   else if (kind === 'none') action = { label: '상차 정보 넣기', onClick: () => openSheet('load') }
-  // 초록: 남은 일은 눈으로 확인뿐. 파랑 없이 버금 단추 하나로 (다 봤으면 한 번에 체크)
+  // 초록: 남은 일은 눈으로 확인뿐. 주 단추 색 없이 버금 단추 하나로 (다 봤으면 한 번에 체크)
   else if (kind === 'ok' && checks.length) action = { label: allSeen ? '확인 끝' : '다 확인했어요', onClick: () => checks.forEach((k) => setEyeCheck(k, true)), disabled: allSeen, quiet: true }
   // 한 화면에 같은 말은 한 번: 머리 글이 할 일 카드의 항목을 다시 말하면 머리에서 뺀다 ('고리 체결은 눈으로 확인하세요' 등)
   const said = (t: string | null | undefined) => !!t && checks.some((k) => t.includes(k))
@@ -127,49 +129,34 @@ export function Park() {
   const lowEnough = spec ? spec.size.h <= BED.wallH : true
   const tiles = (
     <>
-      <Tile
+      <Kpi
         tone={judged ? tone : 'neutral'}
-        captionBelow={below}
+        icon={<GGaugeIcon />}
         name="버티는 제동"
-        caption={judged ? '기준 ' + fmtG(v!.crit) + ' g' : undefined}
         value={judged ? rolled : '—'}
         unit={judged ? 'g' : undefined}
-        sub={judged ? (v!.wallCovers ? '앞쪽은 앞벽이 받아 옆·뒤 기준' : '장력 합 ' + fmtN(v!.sumT) + ' N · ' + (v!.measured ? '키트' : '추정')) : undefined}
         ratio={judged ? v!.limit / 1.2 : null}
         mark={judged ? v!.crit / 1.2 : null}
+        markText={judged ? '기준 ' + fmtG(v!.crit) + ' g' : null}
         selected={detail}
         onClick={judged ? toggleDetail : undefined}
         label="버티는 제동 자세히"
       />
-      <Tile
-        tone="neutral"
-        captionBelow={below}
-        name="짐"
-        caption={spec ? spec.label : undefined}
-        value={load ? load.massKg : '—'}
-        unit={load ? 'kg' : undefined}
-        sub={spec ? '키 ' + spec.size.h.toFixed(1) + ' m · 마찰 ' + spec.mu.toFixed(2) : undefined}
-        onClick={toLoad}
-        label="짐 고치기"
-      />
-      <Tile
-        tone="neutral"
-        captionBelow={below}
+      <Kpi icon={<CargoGlyph kind={load?.kind ?? 'box'} />} name="짐" caption={spec ? spec.label : null} value={load ? load.massKg : '—'} unit={load ? 'kg' : undefined} onClick={toLoad} label="짐 고치기" />
+      <Kpi
+        icon={<StrapIcon />}
         name="벨트"
-        caption={load ? (load.beltType === 'ratchet' ? '라쳇' : '고무바·로프') : undefined}
+        caption={load ? (load.beltType === 'ratchet' ? '라쳇' : '고무바·로프') : null}
         value={load ? load.belts : '—'}
         unit={load ? '개' : undefined}
-        sub={judged ? (v!.measured ? '키트가 잰 장력' : load!.beltType === 'rubber' ? '장력은 계산에 넣지 않음' : '벨트당 ' + fmtN(v!.tensions[0]?.n ?? 0) + ' N 추정') : undefined}
         onClick={toLoad}
         label="벨트 고치기"
       />
-      <Tile
-        tone="neutral"
-        captionBelow={below}
+      <Kpi
+        icon={<HeadboardIcon />}
         name="앞벽"
-        caption={load ? (load.frontWall ? (lowEnough ? '앞벽이 받음' : '짐이 더 높음') : lowEnough ? '붙이면 기준 0.50' : '키 큰 짐') : undefined}
+        caption={load ? (load.frontWall ? (lowEnough ? '앞벽이 받음' : '짐이 더 높음') : lowEnough ? '붙이면 기준 0.50' : '키 큰 짐') : null}
         value={load ? (load.frontWall ? '붙임' : '안 붙임') : '—'}
-        sub={load ? '앞벽 높이 ' + BED.wallH.toFixed(1) + ' m' : undefined}
         onClick={toLoad}
         label="앞벽 고치기"
       />
@@ -182,13 +169,23 @@ export function Park() {
     toast('운행을 마쳤습니다 · 기록에 남겼습니다')
   }
   const right = <EyeCard />
-  // 1920 x 720 (row): 오른 단은 1224 와 같은 [칸 2 x 2 -> 눈으로 확인 줄 -> 버금 단추]. 눈으로 확인 줄을 누르면 같은 카드가 시트로
+  // row 인데 창이 조금 높으면 (1920 x 800 쯤부터) 눈으로 확인 줄 대신 체크 줄을 다 편다: 판정 판은 내용 높이가 되고 빈 면이 남지 않는다.
+  //   오른 단 = 가장자리 48 + 도구 줄 76 + 판정 판 252 (할 일이 두 줄이면 + 37) + 짐 종류 88 + 버금 단추 76 + 사이 16 x 4 + 할 일 판 (머리 48 + 줄 64 x n + 8)
+  const full = shape === 'row' && checks.length > 0 && H >= 780 && H >= 660 + 64 * checks.length + ((todo?.length ?? 0) > 14 ? 37 : 0)
+  // 1920 x 720 (row): 오른 단은 [판정 판 -> 짐 종류 줄 -> 눈으로 확인 줄 -> 버금 단추]. 눈으로 확인 줄을 누르면 같은 판이 시트로
   const summary =
-    shape === 'row' ? (
+    shape === 'row' && !full ? (
       <button type="button" className="nv-sum" onClick={() => openSheet('checks')} disabled={!checks.length} aria-label={'눈으로 확인 ' + doneN + ' / ' + checks.length + ' 열기'}>
+        <i className="tri" aria-hidden="true" />
         <b>눈으로 확인</b>
         {checks.length > 0 ? (
-          <small className="tnum">{allSeen ? <Check strokeWidth={2.6} aria-hidden="true" /> : null}{doneN + ' / ' + checks.length}</small>
+          <>
+            <Progress done={doneN} total={checks.length} />
+            <small className="tnum">
+              {allSeen ? <Check strokeWidth={2.6} aria-hidden="true" /> : null}
+              {doneN + ' / ' + checks.length}
+            </small>
+          </>
         ) : (
           <small>상차 정보 뒤</small>
         )}
@@ -205,20 +202,168 @@ export function Park() {
       </Button>
     </div>
   )
+  // 높은 창: 아래 줄 카드 둘 [계산 근거][짐 종류] + 오른 단 할 일 판 아래에 벨트 장력 판. 계산 근거는 낮은 창에서 무대 위에 뜨는 카드
+  const side = shape === 'side'
+  const strip = (
+    <>
+      <LimitCard />
+      <KindPicker kind={load?.kind ?? null} card />
+    </>
+  )
 
   return (
     <ParkFrame
       banner={banner}
       stage={
-        <Stage input={stage.input} name={stage.name}>
-          {detail && judged && <LimitDetail />}
+        <Stage input={stage.input}>
+          {detail && judged && !side && <LimitDetail />}
+          {detail && judged && side && <LimitNote />}
         </Stage>
       }
       tiles={tiles}
       right={right}
       summary={summary}
+      kinds={<KindPicker kind={load?.kind ?? null} />}
+      strip={strip}
+      extra={<BeltPanel />}
       foot={foot}
+      full={full}
     />
+  )
+}
+
+/**
+ * 벨트 장력 판 (높은 창의 오른 단, 할 일 판 아래 남는 높이): 벨트마다 세로 막대 (폭 28, 판 폭에 고르게 편다) + 값.
+ * 키트가 잰 값 = 강조 색 채움, 추정값 = 강조 색 테두리 + 옅은 강조 면 (18 %), 고무바 = 흐린 점선 테두리 (계산에 넣지 않는 띠).
+ * 필요 장력 = 둘째 강조 색 점선, 그 오른쪽 끝에 '기준 … N'. 값은 화면이 이미 쓰는 v.tensions · v.perBeltNeedN · v.sumT 뿐. 막대 높이는 판 높이를 따라 늘어난다
+ */
+function BeltPanel() {
+  const v = useVerdict()
+  const load = useStore(app, (s) => s.load)
+  const judged = !!v && !!load && v.kind !== 'none'
+  const ts = judged ? v!.tensions.slice(0, 8) : []
+  const rubber = load?.beltType === 'rubber'
+  const need = judged && !rubber ? v!.perBeltNeedN : null
+  const top = Math.max(1, need ?? 0, ...ts.map((t) => t.n)) * 1.08
+  const pct = (n: number) => Math.max(0, Math.min(100, (n / top) * 100)) + '%'
+  const name = (i: number) => (i === 0 ? '앞' : i === ts.length - 1 ? '뒤' : String(i + 1))
+  // 칸: 셋까지는 넓게 (막대 위에 값), 다섯까지 76, 그보다 많으면 같은 폭으로 나눈다 (값은 머리의 장력 합이 말한다)
+  const n = ts.length
+  const cols = { gridTemplateColumns: n <= 3 ? `repeat(${n}, 84px)` : n <= 5 ? `repeat(${n}, minmax(0, 76px))` : `repeat(${n}, minmax(0, 1fr))` }
+  return (
+    <section className="nv-card belts" aria-label="벨트 장력">
+      <PanelHead title="벨트 장력">
+        {judged && n > 0 && (
+          <span className="meta tnum">
+            {rubber ? '장력 합' : '장력 합 · ' + (v!.measured ? '키트' : '추정')}
+            <b>{rubber ? '계산 제외' : fmtN(v!.sumT) + ' N'}</b>
+          </span>
+        )}
+      </PanelHead>
+      {n ? (
+        <div className={'plot' + (n > 5 ? ' many' : '') + (need !== null ? ' has-need' : '')} role="img" aria-label={'벨트 ' + n + '개 장력'}>
+          <div className="vals">
+            {!rubber && n <= 3 && (
+              <span className="cols" style={cols}>
+                {ts.map((t, i) => (
+                  <em className="tnum" key={i}>
+                    {fmtN(t.n)}
+                  </em>
+                ))}
+              </span>
+            )}
+          </div>
+          <div className="chart">
+            <span className="cols" style={cols}>
+              {ts.map((t, i) => (
+                <span className="area" key={i}>
+                  <i className={rubber ? 'none' : t.measured ? 'meas' : 'est'} style={{ height: rubber ? '56%' : pct(t.n) }} />
+                </span>
+              ))}
+            </span>
+            {need !== null && (
+              <span className="need" style={{ bottom: pct(need) }}>
+                <em className="tnum">{'기준 ' + fmtN(need) + ' N'}</em>
+              </span>
+            )}
+          </div>
+          <span className="cols names" style={cols}>
+            {ts.map((_, i) => (
+              <span key={i}>{name(i)}</span>
+            ))}
+          </span>
+        </div>
+      ) : (
+        <p className="nv-card-empty">{judged ? '벨트가 없습니다' : '상차 정보 뒤'}</p>
+      )}
+    </section>
+  )
+}
+
+/** 계산에 들어간 값 넷 + 한 줄 문장 (아래 줄 카드 · 떠 있는 자세히 카드가 같이 쓴다) */
+function useLimitFacts() {
+  const v = useVerdict()
+  const load = useStore(app, (s) => s.load)
+  if (!v || !load || v.kind === 'none') return null
+  const margin = v.limit - v.crit
+  const sentence = margin >= 0 ? `기준 ${fmtG(v.crit)} g 보다 ${fmtG(margin)} g 더 버팁니다` : `기준 ${fmtG(v.crit)} g 에 ${fmtG(-margin)} g 모자랍니다`
+  const cells: [string, string][] = [
+    ['장력 합', fmtN(v.sumT) + ' N'],
+    ['마찰계수', v.mu.toFixed(2)],
+    ['벨트 각도', Math.round(v.angleDeg) + '°'],
+    ['짐 무게', load.massKg + ' kg'],
+  ]
+  const note = (v.perBeltNeedN !== null ? '벨트당 약 ' + fmtN(Math.ceil(v.perBeltNeedN / 10)) + ' daN 이면 기준을 맞춥니다. ' : '') + (v.measured ? '장력은 키트가 잰 값입니다.' : '장력은 벨트 라벨 표준 장력의 절반으로 잡았습니다.')
+  return { v, sentence, cells, note }
+}
+
+/** 계산 근거 카드 (아래 줄, 높은 창): 한 줄 문장 + 값 넷. 누르면 자세히 (버티는 제동 칸과 같은 일). inert = 누르지 않는 카드 (다시 묶기) */
+export function LimitCard({ inert = false }: { inert?: boolean }) {
+  const f = useLimitFacts()
+  const detail = useNav((s) => s.detail)
+  const head = <PanelHead title="계산 근거">{f && <span className="meta">{f.v.measured ? '키트' : '추정'}</span>}</PanelHead>
+  if (!f)
+    return (
+      <section className="nv-card facts" aria-label="계산 근거">
+        {head}
+        <p className="nv-card-empty">상차 정보 뒤</p>
+      </section>
+    )
+  const body = (
+    <>
+      {head}
+      <strong>{f.sentence}</strong>
+      <span className="cells">
+        {f.cells.map(([k, val]) => (
+          <span className="cell" key={k}>
+            <span>{k}</span>
+            <b className="tnum">{val}</b>
+          </span>
+        ))}
+      </span>
+    </>
+  )
+  if (inert)
+    return (
+      <section className="nv-card facts" aria-label="계산 근거">
+        {body}
+      </section>
+    )
+  return (
+    <button type="button" className={'nv-card facts' + (detail ? ' sel' : '')} aria-pressed={detail} onClick={toggleDetail} aria-label="계산 근거 자세히">
+      {body}
+    </button>
+  )
+}
+
+/** 자세히 설명 한 줄 (높은 창: 무대 아래 가운데, 알림 독 위) */
+function LimitNote() {
+  const f = useLimitFacts()
+  if (!f) return null
+  return (
+    <div className="nv-limit-note" role="note">
+      {f.note}
+    </div>
   )
 }
 
@@ -230,15 +375,15 @@ function EyeCard({ inSheet = false }: { inSheet?: boolean }) {
   const info = infoOpen || inSheet
   return (
     <>
-      <div className="nv-rhead">
-        <span>눈으로 확인</span>
+      <PanelHead title="눈으로 확인" className="nv-rhead">
+        {checks.length > 0 && <Progress done={doneN} total={checks.length} />}
         {checks.length > 0 && <small className="tnum">{doneN + ' / ' + checks.length}</small>}
         {checks.length > 0 && (
           <button type="button" className="nv-info" aria-label="왜 눈으로 확인하나요" aria-expanded={info} onClick={() => setInfo((x) => !x)}>
             <Info strokeWidth={2} />
           </button>
         )}
-      </div>
+      </PanelHead>
       {/* 초록 판정의 '계산상 기준일 뿐' 이라는 말은 정보 단추 뒤에 (카드 바닥에 늘 깔지 않는다) */}
       {info && checks.length > 0 && (
         <p className="nv-info-text">
@@ -288,43 +433,27 @@ export function EyeSheet({ onClose }: { onClose: () => void }) {
   )
 }
 
-/** 버티는 제동 자세히 (떠 있는 카드 하나): 계산에 들어간 값 */
+/** 버티는 제동 자세히 (낮은 창 · 세로 창: 무대 왼쪽 위에 떠 있는 카드 하나): 계산에 들어간 값 */
 function LimitDetail() {
-  const v = useVerdict()
-  const load = useStore(app, (s) => s.load)
-  if (!v || !load || v.kind === 'none') return null
-  const margin = v.limit - v.crit
-  const sentence =
-    margin >= 0 ? `기준 ${fmtG(v.crit)} g 보다 ${fmtG(margin)} g 더 버팁니다` : `기준 ${fmtG(v.crit)} g 에 ${fmtG(-margin)} g 모자랍니다`
+  const f = useLimitFacts()
+  if (!f) return null
+  const { v } = f
   return (
     <div className={'nv-detail tone-' + v.tone} role="button" tabIndex={0} onClick={toggleDetail} aria-label="자세히 닫기">
       <div className="hd">
         버티는 제동 {fmtG(v.limit)} g
         <StatusChip tone={v.tone}>{v.title}</StatusChip>
       </div>
-      <strong>{sentence}</strong>
+      <strong>{f.sentence}</strong>
       <div className="cells">
-        <div className="cell">
-          <span>장력 합 · {v.measured ? '키트' : '추정'}</span>
-          <b>{fmtN(v.sumT)} N</b>
-        </div>
-        <div className="cell">
-          <span>마찰계수</span>
-          <b>{v.mu.toFixed(2)}</b>
-        </div>
-        <div className="cell">
-          <span>벨트 각도</span>
-          <b>{Math.round(v.angleDeg)}°</b>
-        </div>
-        <div className="cell">
-          <span>짐 무게</span>
-          <b>{load.massKg} kg</b>
-        </div>
+        {f.cells.map(([k, val], i) => (
+          <div className="cell" key={k}>
+            <span>{i === 0 ? k + ' · ' + (v.measured ? '키트' : '추정') : k}</span>
+            <b>{val}</b>
+          </div>
+        ))}
       </div>
-      <p>
-        {v.perBeltNeedN !== null ? '벨트당 약 ' + fmtN(Math.ceil(v.perBeltNeedN / 10)) + ' daN 이면 기준을 맞춥니다. ' : ''}
-        {v.measured ? '장력은 키트가 잰 값입니다.' : '장력은 벨트 라벨 표준 장력의 절반으로 잡았습니다.'}
-      </p>
+      <p>{f.note}</p>
     </div>
   )
 }
