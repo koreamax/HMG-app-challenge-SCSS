@@ -7,7 +7,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 HERE = Path(__file__).resolve().parent
-INK, BODY, MUTED, LINE, BLUE = '#121519', '#3A414A', '#6B7380', '#8A929C', '#1D5FD0'
+INK, BODY, MUTED, LINE, BLUE = '#121519', '#3A414A', '#6B7380', '#5B6470', '#1D5FD0'
 FONT = 'fontFamily=Pretendard;'
 cells = []
 n = [1]
@@ -45,8 +45,8 @@ def text(x, y, w, h, s, size=15, color=MUTED, align='left', bold=False):
 
 def arrow(a, b, label='', dashed=False, both=False, exit=None, entry=None, pts=()):
     i = nid()
-    style = (f'edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;{FONT}fontSize=13.5;fontColor={MUTED};strokeColor={LINE};strokeWidth=2;'
-             f'endArrow=block;endFill=1;endSize=8;labelBackgroundColor=#FFFFFF;'
+    style = (f'edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;{FONT}fontSize=15;fontColor={BODY};strokeColor={LINE};strokeWidth=2.6;'
+             f'endArrow=block;endFill=1;endSize=10;labelBackgroundColor=#FFFFFF;'
              + ('startArrow=block;startFill=1;startSize=8;' if both else '')
              + ('dashed=1;dashPattern=6 4;' if dashed else ''))
     if exit:
@@ -58,27 +58,32 @@ def arrow(a, b, label='', dashed=False, both=False, exit=None, entry=None, pts=(
     cells.append(f'<mxCell id="{i}" value="{q(label)}" style="{style}" edge="1" parent="1" source="{a}" target="{b}">{geo}</mxCell>')
 
 
-W, H, G = 170, 150, 46          # 카드 크기와 사이
+W, H, G = 180, 150, 90          # 카드 크기와 사이 (화살표와 글이 보이도록 넉넉히)
 X = [20 + k * (W + G) for k in range(5)]
-Y1, Y2, Y3 = 20, 240, 450
+Y1, Y2 = 20, 20 + H + 110       # 두 줄: 위 = 주행 판정 흐름, 아래 = 짐 인식 · 경유지
 
-car = card(X[0], Y1, W, H, '🚚', '차량 신호', '')
-app = card(X[1], Y1, W, H, '📲', '차량 앱', 'Pleos SDK 5종')
+car = card(X[0], Y1, W, H, '🚚', '차량 신호', '속도 · 제동 · 조향')
+app = card(X[1], Y1, W, H, '📲', '차량 앱', 'Pleos SDK')
 eng = card(X[2], Y1, W, H, '🧠', '판정 엔진', '', accent=True)
 out = card(X[3], Y1, W, H, '🔊', '화면 · 음성', '')
 drv = card(X[4], Y1, W, H, '🙋', '기사', '')
-nav = card(X[1], Y2, W, H - 10, '🧭', 'Pleos 내비', '')
-ph = card(X[2], Y2, W, H - 10, '📱', '휴대폰 앱', '')
+ph = card(X[0], Y2, W, H, '📱', '휴대폰 앱', '짐 사진 찍기')
+yolo = card(X[1], Y2, W, H, '🔍', 'YOLO 짐 인식', 'Isaac Sim 학습', accent=True)
+lidar = card(X[2], Y2, W, H, '📏', '라이다 측정', 'Isaac Sim · 계획', dashed=True)
+nav = card(X[4], Y2, W, H, '🧭', 'Pleos 내비', '')
 
+mid = Y1 + H + 55               # 두 줄 사이 가로 통로
 arrow(car, app)
 arrow(app, eng)
 arrow(eng, out)
 arrow(out, drv)
-arrow(app, nav, '경유지', both=True)
-arrow(eng, ph, '기록', both=True)
+arrow(ph, yolo, '사진')
+arrow(yolo, eng, '짐 종류', exit=(.5, 0), entry=(.3, 1), pts=((X[1] + W / 2, mid), (X[2] + W * .3, mid)))
+arrow(lidar, eng, '모양 · 위치', dashed=True, exit=(.7, 0), entry=(.7, 1))
+arrow(drv, nav, '"네" → 경유지')
 
 xml = ('<mxfile host="drawio" agent="jaejeok make_arch_simple.py"><diagram id="arch" name="구성 한눈에">'
-       f'<mxGraphModel dx="1100" dy="660" grid="0" page="1" pageWidth="1100" pageHeight="410" background="#ffffff"><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
+       f'<mxGraphModel dx="1100" dy="660" grid="0" page="1" pageWidth="1360" pageHeight="460" background="#ffffff"><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
        + ''.join(cells) + '</root></mxGraphModel></diagram></mxfile>')
 (HERE / 'jaejeok_architecture.drawio').write_text(xml, encoding='utf-8')
 print('DRAWIO', len(cells))
